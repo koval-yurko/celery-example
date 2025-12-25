@@ -1,7 +1,10 @@
+version: '3.8'
+
 services:
+  # Redis Message Broker and Result Backend
   redis:
     image: redis:7-alpine
-    container_name: celery-redis
+    container_name: microservices-redis
     ports:
       - "6379:6379"
     volumes:
@@ -13,40 +16,75 @@ services:
       timeout: 3s
       retries: 5
     restart: unless-stopped
+    networks:
+      - microservices
 
-  celery-worker:
+  # Dedicated Celery Worker Service
+  worker:
     build:
       context: .
-      dockerfile: Dockerfile
-    container_name: celery-worker
-    command: celery-worker
-    network_mode: host
-    env_file:
-      - .env
+      dockerfile: worker/Dockerfile
+    container_name: microservices-worker
     depends_on:
       redis:
         condition: service_healthy
+    environment:
+      - REDIS_BROKER_URL=redis://redis:6379/0
+      - REDIS_RESULT_BACKEND=redis://redis:6379/1
+      - WORKER_NAME=celery-worker
+      - WORKER_CONCURRENCY=2
+      - WORKER_QUEUES=orders,notifications,default
+      - LOG_LEVEL=INFO
     restart: unless-stopped
-    volumes:
-      - ./celery_example:/app/celery_example
+    networks:
+      - microservices
 
-  celery-example:
+  # Example Service 1 - Order Processing
+  example-service-1:
     build:
       context: .
-      dockerfile: Dockerfile
-    container_name: celery-example
-    command: celery-example
-    network_mode: host
-    env_file:
-      - .env
+      dockerfile: example-service-1/Dockerfile
+    container_name: microservices-service-1
+    ports:
+      - "8001:8000"
     depends_on:
       redis:
         condition: service_healthy
-      celery-worker:
-        condition: service_started
-    volumes:
-      - ./celery_example:/app/celery_example
+    environment:
+      - REDIS_BROKER_URL=redis://redis:6379/0
+      - REDIS_RESULT_BACKEND=redis://redis:6379/1
+      - SERVICE_NAME=example-service-1
+      - SERVICE_PORT=8000
+      - LOG_LEVEL=INFO
+    restart: unless-stopped
+    networks:
+      - microservices
+
+  # Example Service 2 - Notification Service
+  example-service-2:
+    build:
+      context: .
+      dockerfile: example-service-2/Dockerfile
+    container_name: microservices-service-2
+    ports:
+      - "8002:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      - REDIS_BROKER_URL=redis://redis:6379/0
+      - REDIS_RESULT_BACKEND=redis://redis:6379/1
+      - SERVICE_NAME=example-service-2
+      - SERVICE_PORT=8000
+      - LOG_LEVEL=INFO
+    restart: unless-stopped
+    networks:
+      - microservices
 
 volumes:
   redis_data:
     driver: local
+
+networks:
+  microservices:
+    driver: bridge
