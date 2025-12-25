@@ -8,6 +8,7 @@
 
 - Docker 24.0+ and Docker Compose 2.20+
 - Python 3.11+ (for local development without Docker)
+- `uv` package manager (per Constitution v1.1.0) - install via `curl -LsSf https://astral.sh/uv/install.sh | sh`
 - Git (for cloning repository)
 - 8GB RAM minimum (for running all services)
 
@@ -107,17 +108,39 @@ docker-compose logs -f example-service-2
 
 ## Development Workflow
 
+### Local Development Setup (Monorepo)
+
+**IMPORTANT**: This is a monorepo with a single `.venv` at the root level (per FR-014).
+
+```bash
+# Create virtual environment at ROOT (not in service folders!)
+uv venv
+
+# Install all packages from root (FR-014, FR-015, FR-018)
+uv sync
+
+# Or with pip compatibility
+uv pip install -e ./common -e ./worker -e ./example-service-1 -e ./example-service-2
+
+# Verify common module is importable
+python -c "from common_tasks.tasks import process_order; print('OK')"
+```
+
+**DO NOT**:
+- Create `.venv` folders inside service directories
+- Use `sys.path.insert()` to import common module (FR-016)
+- Split API routes across multiple files (FR-017)
+
 ### Running Individual Services
 
 Each service can run in isolation for development:
 
 ```bash
-# Run just Redis + specific service
+# Run just Redis + specific service (Docker)
 docker-compose up redis example-service-1
 
-# Or run service locally (outside Docker)
-cd example-service-1
-python -m pip install -e .
+# Or run service locally (outside Docker) - uses root .venv
+source .venv/bin/activate  # or .venv/Scripts/activate on Windows
 python -m service1.main
 ```
 
@@ -456,6 +479,7 @@ After verifying POC works:
 
 - Docker Compose documentation: https://docs.docker.com/compose/
 - Celery documentation: https://docs.celeryq.dev/
+- uv documentation: https://docs.astral.sh/uv/
 - Project README: `../../README.md`
 - Architecture plan: `./plan.md`
 - Task contracts: `./contracts/task-contracts.md`

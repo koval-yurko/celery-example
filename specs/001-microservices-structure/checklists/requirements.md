@@ -38,13 +38,28 @@
 
 **Requirement Completeness Assessment**:
 - ✅ No [NEEDS CLARIFICATION] markers - all requirements are concrete
-- ✅ All 10 functional requirements are testable and unambiguous
-- ✅ 8 success criteria are measurable with specific metrics (time, percentage, resource usage)
+- ✅ All 19 functional requirements are testable and unambiguous (FR-001 to FR-019)
+- ✅ 11 success criteria are measurable with specific metrics (time, percentage, resource usage)
 - ✅ Success criteria are technology-agnostic (though Docker is mentioned in assumptions, criteria themselves are platform-neutral)
 - ✅ 4 user stories with complete acceptance scenarios
-- ✅ 5 edge cases identified
+- ✅ Edge cases addressed in clarifications
 - ✅ Scope clearly bounded with "Out of Scope" section
-- ✅ 6 assumptions documented, including constitutional alignment
+- ✅ 8 assumptions documented, including constitutional alignment
+
+**Monorepo Constraints (Added 2025-12-25)**:
+- ✅ FR-014: Single virtual environment at root level
+- ✅ FR-015: Centralized dependency management
+- ✅ FR-016: No dynamic path manipulation (sys.path.insert forbidden)
+- ✅ FR-017: API routes must stay in api.py files
+- ✅ SC-009: Standard module resolution without path manipulation
+- ✅ SC-010: Single uv sync for all dependencies
+- ✅ Architectural Constraints section added with monorepo structure details
+
+**Constitution v1.1.0 Alignment (Added 2025-12-25)**:
+- ✅ FR-018: uv MUST be used as dependency management tool
+- ✅ FR-019: uv.lock file required at root level
+- ✅ SC-011: Reproducible environments via uv.lock
+- ✅ Dependency Management Rules updated to reference uv and Constitution v1.1.0
 
 **Feature Readiness Assessment**:
 - ✅ Each functional requirement maps to acceptance scenarios in user stories

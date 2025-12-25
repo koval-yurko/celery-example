@@ -15,11 +15,15 @@
 
 ## Path Conventions
 
-This is a microservices project with services at root level:
+This is a **monorepo** with services at root level (per FR-014, Constitution v1.1.0):
+- **Root**: `.venv/` (single virtual environment), `pyproject.toml` (workspace config), `uv.lock` (lock file)
 - **common/**: Shared task definitions
 - **worker/**: Dedicated worker service
 - **example-service-1/**, **example-service-2/**: Business services
 - Services follow pattern: `{service-name}/src/{service-name}/`
+- **uv** MUST be used for all dependency management (FR-018)
+- **NO** `sys.path.insert()` - standard Python imports only (FR-016)
+- **ALL routes in api.py** - no dynamic route loading (FR-017)
 
 ---
 
@@ -48,9 +52,10 @@ This task list implements a **proof-of-concept (POC)** focused on demonstrating 
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-**Purpose**: Project initialization and basic structure
+**Purpose**: Project initialization, monorepo configuration, and basic structure per FR-014 to FR-019, Constitution v1.1.0
 
-- [X] T001 Setup project infrastructure: Create root directory structure (common/, worker/, example-service-1/, example-service-2/), global .env.example with Redis connection variables, and README.md with architecture overview
+- [x] T001 Setup project infrastructure: Create root directory structure (common/, worker/, example-service-1/, example-service-2/), global .env.example with Redis connection variables, and README.md with architecture overview
+- [x] T002 Configure monorepo with uv workspace (FR-014, FR-015, FR-018): Create root pyproject.toml with uv workspace configuration declaring all packages (common, worker, example-service-1, example-service-2), run `uv sync` to generate uv.lock file (FR-019), verify single .venv at root level only
 
 ---
 
@@ -60,9 +65,9 @@ This task list implements a **proof-of-concept (POC)** focused on demonstrating 
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [X] T002 Setup common module structure: Initialize common/pyproject.toml (Python 3.11+, Celery 5.3+, pydantic), create common/src/common_tasks/ package with __init__.py, create common/tests/ directory
-- [X] T003 Implement common module core: Create celery_app.py (Celery config with Redis broker), schemas.py (Pydantic base models), tasks.py (placeholder task definitions)
-- [X] T004 Setup infrastructure orchestration: Create docker-compose.yml at repository root with Redis service definition and network configuration
+- [x] T003 Setup common module structure: Initialize common/pyproject.toml (Python 3.11+, Celery 5.3+, pydantic), create common/src/common_tasks/ package with __init__.py, create common/tests/ directory
+- [x] T004 Implement common module core: Create celery_app.py (Celery config with Redis broker), schemas.py (Pydantic base models), tasks.py (placeholder task definitions)
+- [x] T005 Setup infrastructure orchestration: Create docker-compose.yml at repository root with Redis service definition and network configuration
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -76,10 +81,10 @@ This task list implements a **proof-of-concept (POC)** focused on demonstrating 
 
 ### Implementation for User Story 1
 
-- [X] T005 [P] [US1] Setup example-service-1 structure: Initialize pyproject.toml (Python 3.11+, common_tasks dependency), create src/service1/ package with __init__.py, .env.example with service-specific variables, tests/ directory
-- [X] T006 [P] [US1] Implement example-service-1 logic: Create main.py (service initialization), api.py (basic API endpoints), handlers.py (task publishers for queue communication)
-- [X] T007 [P] [US1] Setup example-service-2 structure: Initialize pyproject.toml (Python 3.11+, common_tasks dependency), create src/service2/ package with __init__.py, .env.example with service-specific variables, tests/ directory
-- [X] T008 [P] [US1] Implement example-service-2 logic: Create main.py (service initialization), handlers.py (task consumers from queues)
+- [x] T006 [P] [US1] Setup example-service-1 structure: Initialize pyproject.toml (Python 3.11+, common_tasks dependency), create src/service1/ package with __init__.py, .env.example with service-specific variables, tests/ directory
+- [x] T007 [P] [US1] Implement example-service-1 logic: Create main.py (service initialization), api.py (ALL routes per FR-017), handlers.py (task publishers for queue communication)
+- [x] T008 [P] [US1] Setup example-service-2 structure: Initialize pyproject.toml (Python 3.11+, common_tasks dependency), create src/service2/ package with __init__.py, .env.example with service-specific variables, tests/ directory
+- [x] T009 [P] [US1] Implement example-service-2 logic: Create main.py (service initialization), api.py (ALL routes per FR-017), handlers.py (task consumers from queues)
 
 **Checkpoint**: At this point, User Story 1 should be fully functional - both services can run independently with their own dependencies
 
@@ -93,8 +98,8 @@ This task list implements a **proof-of-concept (POC)** focused on demonstrating 
 
 ### Implementation for User Story 2
 
-- [X] T009 [US2] Define shared task contracts: Implement standardized task definitions in common/src/common_tasks/tasks.py (process_order, send_notification), create Pydantic schemas in schemas.py (OrderPayload, NotificationPayload), document contracts in common/README.md
-- [X] T010 [US2] Integrate shared tasks in services: Update example-service-1/handlers.py and example-service-2/handlers.py to use shared task definitions from common module, add task result handling in service1/api.py using common schemas
+- [x] T010 [US2] Define shared task contracts: Implement standardized task definitions in common/src/common_tasks/tasks.py (process_order, send_notification), create Pydantic schemas in schemas.py (OrderPayload, NotificationPayload), document contracts in common/README.md
+- [x] T011 [US2] Integrate shared tasks in services: Update example-service-1/handlers.py and example-service-2/handlers.py to use shared task definitions from common module (using standard imports per FR-016), add task result handling in service1/api.py using common schemas
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work - services are isolated AND share standardized task definitions
 
@@ -108,8 +113,8 @@ This task list implements a **proof-of-concept (POC)** focused on demonstrating 
 
 ### Implementation for User Story 3
 
-- [X] T011 [US3] Setup worker service structure: Initialize worker/pyproject.toml (Python 3.11+, Celery 5.3+, common_tasks dependency), create worker/src/worker/ package with __init__.py, .env.example with worker-specific configuration (concurrency, queue names, prefetch settings)
-- [X] T012 [US3] Implement worker service: Create config.py (worker configuration with acks_late=True and retry policies), main.py (Celery worker startup script that imports tasks from common_tasks), update docker-compose.yml to include worker service definition
+- [x] T012 [US3] Setup worker service structure: Initialize worker/pyproject.toml (Python 3.11+, Celery 5.3+, common_tasks dependency), create worker/src/worker/ package with __init__.py, .env.example with worker-specific configuration (concurrency, queue names, prefetch settings)
+- [x] T013 [US3] Implement worker service: Create config.py (worker configuration with acks_late=True and retry policies), main.py (Celery worker startup script that imports tasks from common_tasks using standard imports per FR-016), update docker-compose.yml to include worker service definition
 
 **Checkpoint**: All user stories 1, 2, and 3 should now work - services are isolated, share task definitions, AND have dedicated workers
 
@@ -123,9 +128,9 @@ This task list implements a **proof-of-concept (POC)** focused on demonstrating 
 
 ### Implementation for User Story 4
 
-- [X] T013 [P] [US4] Create Dockerfiles for all services: Create common/Dockerfile (multi-stage build with Python 3.11), worker/Dockerfile, example-service-1/Dockerfile, example-service-2/Dockerfile - all with common module installation and proper base images
-- [X] T014 [US4] Configure docker-compose orchestration: Update docker-compose.yml to include all services (Redis, worker, example-service-1, example-service-2) with proper networking, environment variable injection from .env file, and service dependencies
-- [X] T015 [US4] Add container health checks and documentation: Add health checks to all Dockerfiles for container orchestration, create .dockerignore files for each service to optimize build contexts, document container build and run instructions in README.md
+- [x] T014 [P] [US4] Create Dockerfiles for all services: Create common/Dockerfile (multi-stage build with Python 3.11), worker/Dockerfile, example-service-1/Dockerfile, example-service-2/Dockerfile - all with common module installation and proper base images
+- [x] T015 [US4] Configure docker-compose orchestration: Update docker-compose.yml to include all services (Redis, worker, example-service-1, example-service-2) with proper networking, environment variable injection from .env file, and service dependencies
+- [x] T016 [US4] Add container health checks and documentation: Add health checks to all Dockerfiles for container orchestration, create .dockerignore files for each service to optimize build contexts, document container build and run instructions in README.md
 
 **Checkpoint**: All user stories should now be independently functional and containerized
 
@@ -135,9 +140,9 @@ This task list implements a **proof-of-concept (POC)** focused on demonstrating 
 
 **Purpose**: Improvements that affect multiple user stories and final validation
 
-- [X] T016 [P] Add logging and error handling: Implement comprehensive logging configuration across all services (common, worker, service1, service2), add basic error handling and validation across all service endpoints
-- [X] T017 Validate all user stories: Test service isolation (run one service while others stopped), validate shared task definitions (execute cross-service task flow), validate worker scaling (run multiple worker instances and measure throughput)
-- [X] T018 Final documentation and verification: Update CLAUDE.md with final tech stack and project structure, build all containers from scratch and run full docker-compose stack, verify all success criteria from spec.md
+- [x] T017 [P] Add logging and error handling: Implement comprehensive logging configuration across all services (common, worker, service1, service2), add basic error handling and validation across all service endpoints
+- [x] T018 Validate all user stories: Test service isolation (run one service while others stopped), validate shared task definitions (execute cross-service task flow), validate worker scaling (run multiple worker instances and measure throughput), verify `uv sync` works correctly (SC-010), verify imports work without sys.path.insert (SC-009)
+- [x] T019 Final documentation and verification: Update CLAUDE.md with final tech stack and project structure, build all containers from scratch and run full docker-compose stack, verify all success criteria from spec.md including SC-011 (reproducible environments via uv.lock)
 
 ---
 
@@ -248,22 +253,25 @@ With multiple developers:
 
 ## Task Summary
 
-**Total Tasks**: 18 (reduced from 52)
-- **Phase 1 (Setup)**: 1 task
-- **Phase 2 (Foundational)**: 3 tasks (BLOCKING)
-- **Phase 3 (US1 - Service Isolation)**: 4 tasks (2 pairs parallelizable)
-- **Phase 4 (US2 - Shared Task Definitions)**: 2 tasks
-- **Phase 5 (US3 - Dedicated Workers)**: 2 tasks
-- **Phase 6 (US4 - Containerized Deployment)**: 3 tasks (first parallelizable)
-- **Phase 7 (Polish)**: 3 tasks (first parallelizable)
+**Total Tasks**: 19 (T001-T019)
+- **Phase 1 (Setup)**: 2 tasks (T001-T002, includes uv workspace setup)
+- **Phase 2 (Foundational)**: 3 tasks (T003-T005, BLOCKING)
+- **Phase 3 (US1 - Service Isolation)**: 4 tasks (T006-T009, 2 pairs parallelizable)
+- **Phase 4 (US2 - Shared Task Definitions)**: 2 tasks (T010-T011)
+- **Phase 5 (US3 - Dedicated Workers)**: 2 tasks (T012-T013)
+- **Phase 6 (US4 - Containerized Deployment)**: 3 tasks (T014-T016, first parallelizable)
+- **Phase 7 (Polish)**: 3 tasks (T017-T019, first parallelizable)
 
-**Parallelization Opportunities**: 6 tasks marked [P] can run in parallel
+**New Tasks Added (Constitution v1.1.0)**:
+- T002: Configure monorepo with uv workspace (FR-014, FR-015, FR-018, FR-019)
+
+**Parallelization Opportunities**: 7 tasks marked [P] can run in parallel
 
 **MVP Scope** (Recommended first delivery):
-- Phase 1: Setup (1 task)
+- Phase 1: Setup (2 tasks including uv workspace)
 - Phase 2: Foundational (3 tasks)
 - Phase 3: User Story 1 (4 tasks)
-- **Total MVP**: 8 tasks
+- **Total MVP**: 9 tasks
 
 ---
 

@@ -196,6 +196,141 @@ This document captures architectural decisions and technology choices for implem
 
 ---
 
+## Decision 9: Monorepo with Single Virtual Environment
+
+**Decision**: Use monorepo structure with single `.venv` at root level and centralized dependency management
+
+**Rationale**:
+- Simplifies local development - one `uv sync` sets up everything
+- Ensures all services use compatible dependency versions
+- Eliminates `sys.path.insert()` hacks - standard Python packaging works naturally
+- Easier to manage shared code (common module) as editable package
+- Consistent developer experience across all services
+- Lock file at root ensures reproducible environments
+
+**Alternatives Considered**:
+- **Per-service virtual environments**: More complex setup, version drift between services, requires path manipulation for common module
+- **No virtual environment (system Python)**: Anti-pattern, conflicts between projects, not portable
+- **Containerized development only**: Adds latency to development workflow, harder to debug
+
+**Implementation Details**:
+- Root `pyproject.toml` declares workspace with all packages
+- Each service has own `pyproject.toml` for container builds
+- Common module installed as editable: `uv pip install -e ./common`
+- Services import via standard Python: `from common_tasks.tasks import X`
+
+**Trade-offs**:
+- **Pro**: Single source of truth for dependencies, no path hacks, simple setup
+- **Con**: All services share same Python version and package versions
+- **Mitigation**: Acceptable for POC; production may need isolation if version conflicts arise
+
+---
+
+## Decision 10: uv as Dependency Management Tool (Constitution v1.1.0)
+
+**Decision**: Use `uv` for all dependency management operations per Constitution v1.1.0
+
+**Rationale**:
+- Constitution v1.1.0 mandates `uv` as the standard dependency management tool
+- 10-100x faster than pip for dependency resolution and installation
+- Native monorepo support via workspaces
+- Generates `uv.lock` for reproducible builds across all environments
+- Drop-in replacement for pip commands (`uv pip install`)
+- Single tool for venv creation, package installation, and lock file management
+
+**Alternatives Considered**:
+- **pip + pip-tools**: Slower, no native workspace support, separate tools for locking
+- **poetry**: Slower, different pyproject.toml format, less Docker-friendly
+- **pdm**: Good alternative but not as fast as uv, smaller community
+
+**Implementation Pattern**:
+```bash
+# Local development
+uv venv            # Create virtual environment
+uv sync            # Install all workspace packages from uv.lock
+
+# Adding dependencies
+uv add celery      # Add to root
+uv add --package common celery  # Add to specific package
+
+# Container builds (pip compatibility)
+pip install /app/common /app/service1
+```
+
+**Constitution Alignment**:
+- FR-018: Repository MUST use uv as dependency management tool
+- FR-019: Repository MUST include uv.lock at root level
+- SC-010: Single uv sync installs all dependencies
+- SC-011: Reproducible environments via uv.lock
+
+---
+
+## Decision 11: Explicit Path Resolution (No sys.path.insert)
+
+**Decision**: Forbid runtime path manipulation; use standard Python packaging for all imports
+
+**Rationale**:
+- `sys.path.insert()` is brittle - breaks when code moves, hard to debug, IDE-unfriendly
+- Standard packaging (`pip install -e ./common`) provides proper module resolution
+- Enables IDE features (autocomplete, go-to-definition, type checking)
+- Container builds work identically to local development
+- Follows Python community best practices
+
+**Alternatives Considered**:
+- **sys.path.insert() at startup**: Works but is fragile, IDE-unfriendly, unclear dependencies
+- **PYTHONPATH environment variable**: Better than sys.path but still fragile, not explicit
+- **symlinks**: Platform-dependent, doesn't work well with Docker
+
+**Implementation Pattern**:
+```python
+# In service pyproject.toml
+dependencies = ["common-tasks"]  # Standard dependency declaration
+
+# In code
+from common_tasks.tasks import process_order  # Standard import
+
+# FORBIDDEN
+# sys.path.insert(0, '../common/src')
+# from tasks import process_order
+```
+
+---
+
+## Decision 12: API Routes in api.py Only
+
+**Decision**: All API routes for each service MUST be defined in a single `api.py` file
+
+**Rationale**:
+- Centralized location for all endpoints - easy to audit and document
+- Prevents fragmentation across multiple files that's hard to navigate
+- Simplifies understanding service capabilities at a glance
+- Aligns with microservice principle: small, focused services have few endpoints
+- No dynamic route registration complexity
+
+**Alternatives Considered**:
+- **Routes split across modules**: Harder to find all endpoints, complex import patterns
+- **Dynamic route loading (plugins)**: Over-engineering for POC, adds complexity
+- **Decorator-based auto-discovery**: Magic behavior, harder to debug
+
+**Implementation Pattern**:
+```python
+# example-service-1/src/service1/api.py
+from fastapi import APIRouter
+
+router = APIRouter()
+
+@router.get("/health")
+def health():
+    return {"status": "healthy"}
+
+@router.post("/api/orders")
+def create_order(payload: OrderPayload):
+    # All order-related routes defined here
+    ...
+```
+
+---
+
 ## Open Questions (None)
 
 All technical questions resolved. POC ready for implementation.
@@ -209,3 +344,5 @@ All technical questions resolved. POC ready for implementation.
 - Docker Multi-Stage Builds: https://docs.docker.com/build/building/multi-stage/
 - Microservices Patterns: https://microservices.io/
 - Python Packaging (pyproject.toml): https://packaging.python.org/en/latest/specifications/pyproject-toml/
+- uv Documentation: https://docs.astral.sh/uv/
+- uv Workspaces: https://docs.astral.sh/uv/concepts/workspaces/

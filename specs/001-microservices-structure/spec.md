@@ -5,6 +5,29 @@
 **Status**: Draft
 **Input**: User description: "Update repository structure to support microservices approach - have separate folder for each service with Dockerfile instructions how to build and run it in isolation. Have separate folder for common/tasks functionality which can be used by any other service. But also create worker service (with own Dockerfile and dependencies) which will handle tasks execution"
 
+## Architectural Constraints
+
+### Monorepo Structure
+
+This project follows a **monorepo architecture** with the following constraints:
+
+1. **Single Virtual Environment**: A single `.venv` directory MUST exist at the repository root level only. Individual services MUST NOT have their own virtual environments.
+
+2. **Centralized Dependency Management**: All dependencies MUST be managed at the root level. Services share the common environment but declare their specific dependencies in their build configurations for containerization.
+
+3. **Explicit Path Resolution**: Services MUST NOT use dynamic path manipulation such as `sys.path.insert()` or similar runtime path modifications. All imports MUST use explicit, package-relative paths that are resolvable through standard module resolution.
+
+4. **API Route Organization**: API route definitions MUST remain within the `api.py` file of each service. Routes MUST NOT be split across multiple files or dynamically loaded from external locations.
+
+### Dependency Management Rules
+
+- **Tool**: `uv` MUST be used as the dependency management and monorepo coordination tool (per Constitution v1.1.0)
+- **Root Level**: The root `pyproject.toml` defines all shared dependencies, development tooling, and workspace configuration
+- **Lock File**: `uv.lock` MUST be generated and committed for reproducible builds across all environments
+- **Service Level**: Each service's containerization instructions (Dockerfile) define production dependencies needed for that service
+- **Common Module**: The common module is treated as an internal package, installed via local path reference in both development (root venv) and production (container build) contexts
+- **Version Consistency**: All services running in the same environment MUST use compatible dependency versions resolved from the root configuration via `uv.lock`
+
 ## Clarifications
 
 ### Session 2025-12-25
@@ -102,6 +125,12 @@ As a developer or operator, I need to build and run each service using standardi
 - **FR-011**: Worker services MUST implement automatic task re-queuing on worker crashes using late acknowledgment and retry policies to prevent task loss
 - **FR-012**: All services MUST accept configuration through environment variables at runtime (broker URLs, secrets, environment-specific settings) following 12-factor app methodology; no configuration baked into container images
 - **FR-013**: New services MUST declare the common module as a build-time dependency in their containerization instructions; the module is installed automatically during the container build process
+- **FR-014**: Repository MUST use a single virtual environment (`.venv`) located at the repository root; individual services MUST NOT maintain separate virtual environments
+- **FR-015**: All dependencies MUST be managed centrally at the root level with a single dependency configuration file (e.g., `pyproject.toml`)
+- **FR-016**: Services MUST NOT use dynamic path manipulation (such as `sys.path.insert()`) for module resolution; all imports MUST use explicit package-relative paths resolvable through standard module resolution
+- **FR-017**: API routes for each service MUST be defined within that service's `api.py` file; routes MUST NOT be dynamically loaded from external locations or split across multiple files
+- **FR-018**: Repository MUST use `uv` as the dependency management tool for installation, resolution, and lock file management (per Constitution v1.1.0 Dependency Management standard)
+- **FR-019**: Repository MUST include a `uv.lock` file at the root level for reproducible dependency resolution across all environments
 
 ### Key Entities
 
@@ -122,6 +151,9 @@ As a developer or operator, I need to build and run each service using standardi
 - **SC-006**: Task execution throughput can be increased by 200% by scaling only worker services without scaling business services
 - **SC-007**: Common module updates can be deployed to all services by rebuilding containers in under 10 minutes total
 - **SC-008**: Developers can verify service isolation by running integration tests against one service while all others are stopped
+- **SC-009**: All service imports resolve correctly using standard module resolution without any runtime path manipulation
+- **SC-010**: A single `uv sync` command from the repository root installs all dependencies for local development of all services
+- **SC-011**: Dependency resolution via `uv.lock` produces identical environments on any developer machine or CI system
 
 ## Assumptions
 
