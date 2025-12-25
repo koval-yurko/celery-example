@@ -35,3 +35,13 @@ docker-compose.yml
 # Tests
 tests/
 *.test.py
+
+# Logs
+*.log
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Specs directory
+specs/

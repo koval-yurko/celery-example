@@ -1,13 +1,19 @@
 [project]
 name = "celery-example"
 version = "0.1.0"
-description = "A Python project demonstrating Celery with Redis"
+description = "A Python project demonstrating Celery with Redis - Microservices POC"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.11"
 dependencies = [
-    "celery>=5.6.0",
-    "python-dotenv>=1.2.1",
-    "redis>=7.1.0",
+    "celery>=5.3.0",
+    "python-dotenv>=1.0.0",
+    "redis>=5.0.0",
+    "pydantic>=2.0.0",
+    # Workspace packages (installed via uv sync)
+    "common-tasks",
+    "worker",
+    "example-service-1",
+    "example-service-2",
 ]
 
 [project.scripts]
@@ -20,3 +26,28 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["celery_example"]
+
+# UV Workspace Configuration (per FR-014, FR-015, FR-018, Constitution v1.1.0)
+# All packages are installed in a single .venv at repository root
+# Run `uv sync` to install all workspace packages
+[tool.uv.workspace]
+members = [
+    "common",
+    "worker",
+    "example-service-1",
+    "example-service-2",
+]
+
+# Workspace package sources - tells uv to use local packages
+[tool.uv.sources]
+common-tasks = { workspace = true }
+worker = { workspace = true }
+example-service-1 = { workspace = true }
+example-service-2 = { workspace = true }
+
+# Development dependencies (shared across all workspace packages)
+[dependency-groups]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+]

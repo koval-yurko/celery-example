@@ -1,9 +1,10 @@
 <!--
 Sync Impact Report:
-- Version: 1.0.0 → 1.0.1 (PATCH - Task duration guidance clarification)
+- Version: 1.0.1 → 1.1.0 (MINOR - Added uv as dependency management standard)
 - Modified Sections:
-  - Development Standards > Task Design: Clarified that tasks can exceed 5 minutes
-    (removed arbitrary time limit, system should support long-running tasks)
+  - Development Standards: Added new "Dependency Management" subsection
+    - uv MUST be used for dependency management and monorepo tooling
+    - Single .venv at repository root, no sys.path manipulation
 - Principles unchanged: All 5 core principles remain intact
 - Template Updates:
   ✅ plan-template.md - No changes needed (constitution check remains valid)
@@ -102,6 +103,19 @@ Complexity must be justified. Development MUST:
 - Inter-service communication exclusively through Celery tasks
 - Define service contracts in `.specify/contracts/` directory
 
+### Dependency Management
+
+This project uses `uv` as the standard tool for dependency management and monorepo coordination. Development MUST:
+
+- Use `uv` for all dependency installation, resolution, and lock file management
+- Maintain a single `.venv` virtual environment at the repository root only
+- Install all service packages as editable from root: `uv sync` or `pip install -e ./common -e ./worker -e ./service1`
+- Use standard Python package imports only - `sys.path.insert()` is FORBIDDEN
+- Define shared dependencies in root `pyproject.toml` with workspace configuration
+- Generate and commit `uv.lock` for reproducible builds across environments
+
+**Rationale**: `uv` provides fast, reliable dependency resolution with native monorepo support via workspaces. A single virtual environment ensures all services use compatible versions, eliminates path manipulation hacks, and simplifies local development setup.
+
 ## Governance
 
 ### Constitution Authority
@@ -131,4 +145,4 @@ Amendments require:
 - **MINOR**: New principles added or significant guidance expansions
 - **PATCH**: Clarifications, wording improvements, or minor corrections
 
-**Version**: 1.0.1 | **Ratified**: 2025-12-25 | **Last Amended**: 2025-12-25
+**Version**: 1.1.0 | **Ratified**: 2025-12-25 | **Last Amended**: 2025-12-25
