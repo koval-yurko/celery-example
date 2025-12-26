@@ -27,7 +27,6 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """Application lifespan events"""
     logger.info("Starting Example Service 2 (Notification Service)")
-    logger.info(f"Redis Broker: {os.getenv('REDIS_BROKER_URL', 'NOT_SET')}")
     yield
     logger.info("Shutting down Example Service 2")
 
