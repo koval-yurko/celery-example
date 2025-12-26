@@ -143,6 +143,7 @@ This task list implements a **proof-of-concept (POC)** focused on demonstrating 
 - [x] T017 [P] Add logging and error handling: Implement comprehensive logging configuration across all services (common, worker, service1, service2), add basic error handling and validation across all service endpoints
 - [x] T018 Validate all user stories: Test service isolation (run one service while others stopped), validate shared task definitions (execute cross-service task flow), validate worker scaling (run multiple worker instances and measure throughput), verify `uv sync` works correctly (SC-010), verify imports work without sys.path.insert (SC-009)
 - [x] T019 Final documentation and verification: Update CLAUDE.md with final tech stack and project structure, build all containers from scratch and run full docker-compose stack, verify all success criteria from spec.md including SC-011 (reproducible environments via uv.lock)
+- [x] T020 [US1] Refactor example-service-2 to use separate api.py (FR-017): Create example-service-2/src/service2/api.py with FastAPI router containing all HTTP routes, update main.py to import and include the router, move any route definitions from main.py/handlers.py to api.py for consistency with example-service-1 pattern
 
 ---
 
@@ -253,14 +254,14 @@ With multiple developers:
 
 ## Task Summary
 
-**Total Tasks**: 19 (T001-T019)
+**Total Tasks**: 20 (T001-T020)
 - **Phase 1 (Setup)**: 2 tasks (T001-T002, includes uv workspace setup)
 - **Phase 2 (Foundational)**: 3 tasks (T003-T005, BLOCKING)
 - **Phase 3 (US1 - Service Isolation)**: 4 tasks (T006-T009, 2 pairs parallelizable)
 - **Phase 4 (US2 - Shared Task Definitions)**: 2 tasks (T010-T011)
 - **Phase 5 (US3 - Dedicated Workers)**: 2 tasks (T012-T013)
 - **Phase 6 (US4 - Containerized Deployment)**: 3 tasks (T014-T016, first parallelizable)
-- **Phase 7 (Polish)**: 3 tasks (T017-T019, first parallelizable)
+- **Phase 7 (Polish)**: 4 tasks (T017-T020, T020 for FR-017 compliance)
 
 **New Tasks Added (Constitution v1.1.0)**:
 - T002: Configure monorepo with uv workspace (FR-014, FR-015, FR-018, FR-019)

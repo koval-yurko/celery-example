@@ -13,7 +13,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 import uvicorn
 
-from .handlers import get_notification_handler
+from .api import router
 
 # Configure logging
 logging.basicConfig(
@@ -40,54 +40,8 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-
-# Health Check Endpoint
-@app.get("/health")
-async def health_check():
-    """Health check endpoint"""
-    return {
-        "status": "healthy",
-        "service": "example-service-2",
-        "timestamp": __import__("datetime").datetime.utcnow().isoformat(),
-        "redis_configured": bool(os.getenv("REDIS_BROKER_URL")),
-    }
-
-
-# Notification API Endpoints (placeholder for demonstration)
-@app.get("/api/notifications/{notification_id}")
-async def get_notification(notification_id: str):
-    """Get notification status (placeholder)"""
-    logger.info(f"Notification status check for: {notification_id}")
-    return {
-        "notification_id": notification_id,
-        "status": "sent",
-        "message": "This is a placeholder. In production, this would query a database.",
-    }
-
-
-@app.post("/api/notifications/send")
-async def send_notification_direct(
-    recipient: str,
-    notification_type: str,
-    message: str,
-    subject: str = None,
-):
-    """
-    Direct notification send endpoint (alternative to task queue).
-
-    This demonstrates that service-2 can operate independently,
-    either consuming tasks from queue OR receiving direct API calls.
-    """
-    logger.info(f"Direct notification send request: {notification_type} to {recipient}")
-
-    result = get_notification_handler().send_notification_direct(
-        recipient=recipient,
-        notification_type=notification_type,
-        message=message,
-        subject=subject,
-    )
-
-    return result
+# Include API routes
+app.include_router(router)
 
 
 if __name__ == "__main__":
