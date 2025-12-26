@@ -4,21 +4,15 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
-
 # Copy and install common module first
 COPY common/pyproject.toml common/
 COPY common/src/ common/src/
-RUN pip install --no-cache-dir -e ./common
 
 # Copy and install service
 COPY example-service-1/pyproject.toml example-service-1/
 COPY example-service-1/src/ example-service-1/src/
-RUN pip install --no-cache-dir -e ./example-service-1
+
+RUN pip install --no-cache-dir -e ./common -e ./example-service-1
 
 # Set Python path
 ENV PYTHONPATH=/app/example-service-1/src:$PYTHONPATH

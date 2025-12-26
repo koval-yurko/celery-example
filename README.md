@@ -119,6 +119,88 @@ docker-compose up -d --scale worker=3
 docker-compose ps worker
 ```
 
+## Docker Build & Deployment
+
+The project includes Makefile commands for building and pushing Docker images with version tags. All images are built for both **linux/amd64** and **linux/arm64** architectures (supporting both Intel/AMD and Apple Silicon Macs, as well as Linux servers).
+
+### Building Docker Images
+
+Build a single service with a specific version (creates multi-platform images in buildx cache):
+
+```bash
+# Build worker service
+make docker-build worker 0.0.1
+
+# Build service-1
+make docker-build service-1 0.0.1
+
+# Build service-2
+make docker-build service-2 0.0.1
+
+# Build API gateway
+make docker-build api-gateway 0.0.1
+```
+
+Build all services at once:
+
+```bash
+# Build all services with the same version
+make docker-build-all 0.0.1
+```
+
+**Note:** The `docker-build` command creates multi-platform images for both architectures and also loads the native platform image into your local Docker daemon (so it appears in `docker images`). The multi-platform images are stored in the buildx cache and can be pushed to a registry using `docker-push`. For local development and testing, you can also use `docker-compose` which builds images for your native platform.
+
+### Pushing Docker Images
+
+Push a single service (builds first, then pushes):
+
+```bash
+# Push worker service
+make docker-push worker 0.0.1
+
+# Push service-1
+make docker-push service-1 0.0.1
+
+# Push service-2
+make docker-push service-2 0.0.1
+
+# Push API gateway
+make docker-push api-gateway 0.0.1
+```
+
+Push all services at once:
+
+```bash
+# Build and push all services
+make docker-push-all 0.0.1
+```
+
+### Multi-Platform Builds
+
+All images are built for both architectures:
+- **linux/amd64** - Intel/AMD processors (Intel Macs, Linux servers)
+- **linux/arm64** - ARM processors (Apple Silicon Macs, ARM-based servers)
+
+The Makefile automatically uses Docker buildx to create multi-platform images. On first use, it will set up the buildx builder if needed.
+
+### Image Tags
+
+All images are tagged with the format: `failwin/celery-example-{service-name}:{version}`
+
+Examples:
+- `failwin/celery-example-worker:0.0.1`
+- `failwin/celery-example-service-1:0.0.1`
+- `failwin/celery-example-service-2:0.0.1`
+- `failwin/celery-example-api-gateway:0.0.1`
+
+### Available Services
+
+The following service names are supported:
+- `worker` - Celery worker service
+- `service-1` - Example service 1
+- `service-2` - Example service 2
+- `api-gateway` - API Gateway service
+
 ## Project Structure
 
 ```
