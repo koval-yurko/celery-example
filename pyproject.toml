@@ -14,6 +14,7 @@ dependencies = [
     "worker",
     "example-service-1",
     "example-service-2",
+    "api-gateway",
 ]
 
 [project.scripts]
@@ -36,6 +37,7 @@ members = [
     "worker",
     "example-service-1",
     "example-service-2",
+    "api-gateway",
 ]
 
 # Workspace package sources - tells uv to use local packages
@@ -44,6 +46,7 @@ common-tasks = { workspace = true }
 worker = { workspace = true }
 example-service-1 = { workspace = true }
 example-service-2 = { workspace = true }
+api-gateway = { workspace = true }
 
 # Development dependencies (shared across all workspace packages)
 [dependency-groups]

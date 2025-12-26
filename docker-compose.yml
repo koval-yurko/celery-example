@@ -1,4 +1,26 @@
 services:
+  # API Gateway - Single Entry Point
+  api-gateway:
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+    container_name: microservices-api-gateway
+    ports:
+      - "8000:8000"
+    depends_on:
+      - example-service-1
+      - example-service-2
+    environment:
+      - GATEWAY_HOST=0.0.0.0
+      - GATEWAY_PORT=8000
+      - GATEWAY_TIMEOUT=30
+      - GATEWAY_LOG_LEVEL=INFO
+      - SERVICE1_URL=http://example-service-1:8000
+      - SERVICE2_URL=http://example-service-2:8000
+    restart: unless-stopped
+    networks:
+      - microservices
+
   # Redis Message Broker and Result Backend
   redis:
     image: redis:7-alpine

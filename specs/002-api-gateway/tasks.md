@@ -28,9 +28,9 @@ This is a **monorepo** with services at root level (per FR-012, Constitution v1.
 
 **Purpose**: Create api-gateway service structure and add to monorepo workspace
 
-- [ ] T001 Create api-gateway directory structure: Create api-gateway/ with src/api_gateway/ package structure (__init__.py), tests/ directory, and .env.example with GATEWAY_HOST, GATEWAY_PORT, GATEWAY_TIMEOUT, GATEWAY_LOG_LEVEL, SERVICE1_URL, SERVICE2_URL variables
-- [ ] T002 Create api-gateway/pyproject.toml: Initialize package metadata (name="api-gateway", Python 3.11+), add dependencies (fastapi>=0.100.0, httpx>=0.25.0, uvicorn>=0.23.0, pydantic>=2.0.0), configure hatch build backend with packages=["src/api_gateway"]
-- [ ] T003 Update root pyproject.toml: Add "api-gateway" to [tool.uv.workspace] members list and [tool.uv.sources] with workspace=true, run `uv sync` to update uv.lock
+- [x] T001 Create api-gateway directory structure: Create api-gateway/ with src/api_gateway/ package structure (__init__.py), tests/ directory, and .env.example with GATEWAY_HOST, GATEWAY_PORT, GATEWAY_TIMEOUT, GATEWAY_LOG_LEVEL, SERVICE1_URL, SERVICE2_URL variables
+- [x] T002 Create api-gateway/pyproject.toml: Initialize package metadata (name="api-gateway", Python 3.11+), add dependencies (fastapi>=0.100.0, httpx>=0.25.0, uvicorn>=0.23.0, pydantic>=2.0.0), configure hatch build backend with packages=["src/api_gateway"]
+- [x] T003 Update root pyproject.toml: Add "api-gateway" to [tool.uv.workspace] members list and [tool.uv.sources] with workspace=true, run `uv sync` to update uv.lock
 
 ---
 
@@ -40,10 +40,10 @@ This is a **monorepo** with services at root level (per FR-012, Constitution v1.
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Implement configuration module in api-gateway/src/api_gateway/config.py: Create GatewayConfig and ServiceRoute Pydantic models (per data-model.md), implement load_config() function reading from environment variables (SERVICE1_URL, SERVICE2_URL, GATEWAY_TIMEOUT etc.), include validation rules for prefixes and URLs
-- [ ] T005 Implement Pydantic schemas in api-gateway/src/api_gateway/schemas.py: Create GatewayError, HealthStatus, ServiceInfo, and GatewayStatus models (per data-model.md), include error codes enum (not_found, bad_gateway, service_unavailable, gateway_timeout, payload_too_large)
-- [ ] T006 [P] Implement logging module in api-gateway/src/api_gateway/logging.py: Create structured JSON logging setup with request_id, method, path, target_service, status_code, duration_ms fields (per research.md Decision 8), configure log level from GATEWAY_LOG_LEVEL environment variable
-- [ ] T007 Create FastAPI app initialization in api-gateway/src/api_gateway/main.py: Initialize FastAPI app with title="API Gateway", version="0.1.0", configure logging on startup, load configuration, include routers from api.py
+- [x] T004 Implement configuration module in api-gateway/src/api_gateway/config.py: Create GatewayConfig and ServiceRoute Pydantic models (per data-model.md), implement load_config() function reading from environment variables (SERVICE1_URL, SERVICE2_URL, GATEWAY_TIMEOUT etc.), include validation rules for prefixes and URLs
+- [x] T005 Implement Pydantic schemas in api-gateway/src/api_gateway/schemas.py: Create GatewayError, HealthStatus, ServiceInfo, and GatewayStatus models (per data-model.md), include error codes enum (not_found, bad_gateway, service_unavailable, gateway_timeout, payload_too_large)
+- [x] T006 [P] Implement logging module in api-gateway/src/api_gateway/logging.py: Create structured JSON logging setup with request_id, method, path, target_service, status_code, duration_ms fields (per research.md Decision 8), configure log level from GATEWAY_LOG_LEVEL environment variable
+- [x] T007 Create FastAPI app initialization in api-gateway/src/api_gateway/main.py: Initialize FastAPI app with title="API Gateway", version="0.1.0", configure logging on startup, load configuration, include routers from api.py
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -57,11 +57,11 @@ This is a **monorepo** with services at root level (per FR-012, Constitution v1.
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Implement proxy module in api-gateway/src/api_gateway/proxy.py: Create async proxy_request() function using httpx.AsyncClient with streaming support (per research.md Decision 3), implement forward_headers() to strip hop-by-hop headers and add X-Forwarded-* headers (per research.md Decision 6), handle connection errors (503) and timeouts (504)
-- [ ] T009 [US1] Implement route matching in api-gateway/src/api_gateway/routing.py: Create match_route() function for prefix-based routing (per research.md Decision 9), implement rewrite_path() to strip service prefix (e.g., /api/service1/orders → /api/orders), return None for unmatched routes
-- [ ] T010 [US1] Implement proxy routes in api-gateway/src/api_gateway/api.py: Create FastAPI router, implement catch-all route for /api/service1/{path:path} forwarding to SERVICE1_URL, implement catch-all route for /api/service2/{path:path} forwarding to SERVICE2_URL, preserve all HTTP methods (GET, POST, PUT, DELETE, PATCH)
-- [ ] T011 [US1] Implement error handling in api-gateway/src/api_gateway/errors.py: Create gateway_error_response() function returning GatewayError JSON (per data-model.md), implement exception handlers for httpx.ConnectError (503), httpx.TimeoutException (504), and general exceptions (502), add error handlers to FastAPI app
-- [ ] T012 [US1] Add request logging middleware in api-gateway/src/api_gateway/middleware.py: Create RequestLoggingMiddleware that logs request_id, method, path, target_service, status_code, duration_ms for every request (FR-009), generate UUID request_id and add to X-Request-ID header
+- [x] T008 [US1] Implement proxy module in api-gateway/src/api_gateway/proxy.py: Create async proxy_request() function using httpx.AsyncClient with streaming support (per research.md Decision 3), implement forward_headers() to strip hop-by-hop headers and add X-Forwarded-* headers (per research.md Decision 6), handle connection errors (503) and timeouts (504)
+- [x] T009 [US1] Implement route matching in api-gateway/src/api_gateway/routing.py: Create match_route() function for prefix-based routing (per research.md Decision 9), implement rewrite_path() to strip service prefix (e.g., /api/service1/orders → /api/orders), return None for unmatched routes
+- [x] T010 [US1] Implement proxy routes in api-gateway/src/api_gateway/api.py: Create FastAPI router, implement catch-all route for /api/service1/{path:path} forwarding to SERVICE1_URL, implement catch-all route for /api/service2/{path:path} forwarding to SERVICE2_URL, preserve all HTTP methods (GET, POST, PUT, DELETE, PATCH)
+- [x] T011 [US1] Implement error handling in api-gateway/src/api_gateway/errors.py: Create gateway_error_response() function returning GatewayError JSON (per data-model.md), implement exception handlers for httpx.ConnectError (503), httpx.TimeoutException (504), and general exceptions (502), add error handlers to FastAPI app
+- [x] T012 [US1] Add request logging middleware in api-gateway/src/api_gateway/middleware.py: Create RequestLoggingMiddleware that logs request_id, method, path, target_service, status_code, duration_ms for every request (FR-009), generate UUID request_id and add to X-Request-ID header
 
 **Checkpoint**: User Story 1 complete - gateway can route requests to service1 and service2
 
@@ -75,8 +75,8 @@ This is a **monorepo** with services at root level (per FR-012, Constitution v1.
 
 ### Implementation for User Story 2
 
-- [ ] T013 [US2] Implement health endpoint in api-gateway/src/api_gateway/health.py: Create health_check() function returning HealthStatus with status="healthy", service="api-gateway", version from package, timestamp in ISO 8601 format (per research.md Decision 5)
-- [ ] T014 [US2] Add health route to api-gateway/src/api_gateway/api.py: Add GET /health endpoint that calls health_check(), return 200 with HealthStatus JSON, ensure endpoint responds within 50ms (SC-003)
+- [x] T013 [US2] Implement health endpoint in api-gateway/src/api_gateway/health.py: Create health_check() function returning HealthStatus with status="healthy", service="api-gateway", version from package, timestamp in ISO 8601 format (per research.md Decision 5)
+- [x] T014 [US2] Add health route to api-gateway/src/api_gateway/api.py: Add GET /health endpoint that calls health_check(), return 200 with HealthStatus JSON, ensure endpoint responds within 50ms (SC-003)
 
 **Checkpoint**: User Stories 1 and 2 complete - gateway routes requests and provides health monitoring
 
@@ -90,8 +90,8 @@ This is a **monorepo** with services at root level (per FR-012, Constitution v1.
 
 ### Implementation for User Story 3
 
-- [ ] T015 [US3] Implement gateway status endpoint in api-gateway/src/api_gateway/gateway.py: Create get_gateway_status() returning GatewayStatus with status="running", version, and list of ServiceInfo for configured routes, create list_services() returning array of ServiceInfo objects
-- [ ] T016 [US3] Add gateway-owned routes to api-gateway/src/api_gateway/api.py: Add GET /api/gateway/status endpoint returning GatewayStatus JSON, add GET /api/gateway/services endpoint returning array of ServiceInfo, ensure these routes are NOT forwarded to backend services
+- [x] T015 [US3] Implement gateway status endpoint in api-gateway/src/api_gateway/gateway.py: Create get_gateway_status() returning GatewayStatus with status="running", version, and list of ServiceInfo for configured routes, create list_services() returning array of ServiceInfo objects
+- [x] T016 [US3] Add gateway-owned routes to api-gateway/src/api_gateway/api.py: Add GET /api/gateway/status endpoint returning GatewayStatus JSON, add GET /api/gateway/services endpoint returning array of ServiceInfo, ensure these routes are NOT forwarded to backend services
 
 **Checkpoint**: All user stories complete - gateway provides full routing, health monitoring, and gateway-owned endpoints
 
@@ -101,9 +101,9 @@ This is a **monorepo** with services at root level (per FR-012, Constitution v1.
 
 **Purpose**: Docker containerization and docker-compose integration
 
-- [ ] T017 Create api-gateway/Dockerfile: Use python:3.11-slim base image, copy pyproject.toml and src/, install dependencies with pip, expose port 8000, set CMD to run uvicorn api_gateway.main:app with host 0.0.0.0
-- [ ] T018 Create api-gateway/.dockerignore: Add .git, __pycache__, *.pyc, .env, .venv, tests/, .pytest_cache, .coverage patterns
-- [ ] T019 Update docker-compose.yml: Add api-gateway service definition with build context ./api-gateway, expose port 8000, set environment variables (SERVICE1_URL=http://example-service-1:8001, SERVICE2_URL=http://example-service-2:8002), add depends_on for example-service-1 and example-service-2, add to shared network
+- [x] T017 Create api-gateway/Dockerfile: Use python:3.11-slim base image, copy pyproject.toml and src/, install dependencies with pip, expose port 8000, set CMD to run uvicorn api_gateway.main:app with host 0.0.0.0
+- [x] T018 Create api-gateway/.dockerignore: Add .git, __pycache__, *.pyc, .env, .venv, tests/, .pytest_cache, .coverage patterns
+- [x] T019 Update docker-compose.yml: Add api-gateway service definition with build context ./api-gateway, expose port 8000, set environment variables (SERVICE1_URL=http://example-service-1:8001, SERVICE2_URL=http://example-service-2:8002), add depends_on for example-service-1 and example-service-2, add to shared network
 
 ---
 
@@ -111,9 +111,9 @@ This is a **monorepo** with services at root level (per FR-012, Constitution v1.
 
 **Purpose**: Final validation and documentation
 
-- [ ] T020 Add 404 handling for unknown routes in api-gateway/src/api_gateway/api.py: Implement catch-all route that returns GatewayError with error="not_found" for paths not matching /api/service1/*, /api/service2/*, /api/gateway/*, or /health
-- [ ] T021 Validate all user stories per quickstart.md: Test routing to service1 and service2, verify health endpoint responds <50ms, verify gateway-owned endpoints work, test error responses (404, 503, 504) by stopping backend services
-- [ ] T022 Update README.md with gateway documentation: Add API Gateway section describing routing patterns, configuration via environment variables, health check endpoint, gateway-owned endpoints, and example curl commands
+- [x] T020 Add 404 handling for unknown routes in api-gateway/src/api_gateway/api.py: Implement catch-all route that returns GatewayError with error="not_found" for paths not matching /api/service1/*, /api/service2/*, /api/gateway/*, or /health
+- [x] T021 Validate all user stories per quickstart.md: Test routing to service1 and service2, verify health endpoint responds <50ms, verify gateway-owned endpoints work, test error responses (404, 503, 504) by stopping backend services
+- [x] T022 Update README.md with gateway documentation: Add API Gateway section describing routing patterns, configuration via environment variables, health check endpoint, gateway-owned endpoints, and example curl commands
 
 ---
 
