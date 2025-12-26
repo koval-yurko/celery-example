@@ -6,26 +6,11 @@ Can be called either from Celery tasks or direct API requests.
 """
 
 import logging
-import os
-import sys
+import uuid
 from datetime import datetime
 from typing import Dict
-import uuid
 
-# Add common module to path for local development
-common_path = os.path.join(os.path.dirname(__file__), "../../../common/src")
-if os.path.exists(common_path) and common_path not in sys.path:
-    sys.path.insert(0, common_path)
-
-try:
-    from common_tasks.schemas import NotificationPayload, NotificationType
-except ImportError as e:
-    logging.error(f"Failed to import common_tasks: {e}")
-    logging.error(
-        "Make sure the common module is installed or available in PYTHONPATH. "
-        "In Docker, this should be installed via pip. For local dev, ensure common/src is in path."
-    )
-    raise
+from common_tasks.schemas import NotificationPayload, NotificationType
 
 logger = logging.getLogger(__name__)
 

@@ -6,12 +6,11 @@ Starts the Celery worker with configured settings.
 
 import logging
 import os
-import sys
 
-# Add common module to path for local development
-common_path = os.path.join(os.path.dirname(__file__), "../../../common/src")
-if os.path.exists(common_path) and common_path not in sys.path:
-    sys.path.insert(0, common_path)
+from common_tasks import tasks  # noqa: F401
+from common_tasks.celery_app import celery_app
+
+from .config import get_worker_config
 
 # Configure logging
 logging.basicConfig(
@@ -19,22 +18,6 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
-
-# Import Celery app and tasks AFTER configuring logging
-try:
-    from common_tasks.celery_app import celery_app
-    # Import tasks to register them with the worker
-    from common_tasks import tasks  # noqa: F401
-except ImportError as e:
-    logger.error(f"Failed to import common_tasks: {e}")
-    logger.error(
-        "Make sure the common module is installed. "
-        "In Docker, run: pip install -e /app/common. "
-        "For local dev, ensure common/src is in PYTHONPATH."
-    )
-    sys.exit(1)
-
-from .config import get_worker_config
 
 
 def configure_celery_app():
