@@ -12,6 +12,7 @@ This project demonstrates a microservices architecture with:
 
 ### Services
 
+- **api-gateway/**: Single entry point for all client requests (routes to backend services)
 - **common/**: Shared task definitions and Celery configuration
 - **worker/**: Dedicated Celery worker service for task execution
 - **example-service-1/**: Example business service (publishes tasks)
@@ -47,7 +48,17 @@ docker-compose up -d --build
 ### 3. Verify Services
 
 ```bash
-# Check service health
+# Check API Gateway health (single entry point)
+curl http://localhost:8000/health
+
+# Check services via gateway
+curl http://localhost:8000/api/service1/health
+curl http://localhost:8000/api/service2/health
+
+# Check gateway status
+curl http://localhost:8000/api/gateway/status
+
+# Or check services directly (for debugging)
 curl http://localhost:8001/health  # example-service-1
 curl http://localhost:8002/health  # example-service-2
 
@@ -58,9 +69,14 @@ docker-compose logs -f worker
 ### 4. Test Task Flow
 
 ```bash
-# Submit a task via service-1 (triggers cross-service communication)
-curl -X POST http://localhost:8001/api/orders \\
-  -H "Content-Type: application/json" \\
+# Submit a task via API Gateway (recommended - single entry point)
+curl -X POST http://localhost:8000/api/service1/orders \
+  -H "Content-Type: application/json" \
+  -d '{"order_id": "ORD-001", "customer_id": "CUST-123", "items": [{"product_id": "PROD-456", "quantity": 2}], "total_amount": 99.98}'
+
+# Or directly to service-1 (for debugging)
+curl -X POST http://localhost:8001/api/orders \
+  -H "Content-Type: application/json" \
   -d '{"order_id": "ORD-001", "customer_id": "CUST-123", "items": [{"product_id": "PROD-456", "quantity": 2}], "total_amount": 99.98}'
 
 # Watch worker logs to see task execution
@@ -107,6 +123,10 @@ docker-compose ps worker
 
 ```
 .
+├── api-gateway/             # API Gateway (single entry point)
+│   ├── src/api_gateway/    # Routing, proxy, health checks
+│   ├── pyproject.toml
+│   └── Dockerfile
 ├── common/                  # Shared task definitions
 │   ├── src/common_tasks/   # Task definitions, schemas, Celery config
 │   ├── pyproject.toml
@@ -233,12 +253,69 @@ docker-compose build worker
 docker-compose exec worker python -c "import common_tasks; print(common_tasks.__file__)"
 ```
 
+## API Gateway
+
+The API Gateway provides a single entry point for all client requests, routing them to the appropriate backend services.
+
+### Routing Patterns
+
+| Path Pattern | Target Service |
+|-------------|----------------|
+| `/api/service1/*` | example-service-1 |
+| `/api/service2/*` | example-service-2 |
+| `/api/gateway/*` | Gateway-owned endpoints |
+| `/health` | Gateway health check |
+
+### Gateway Endpoints
+
+```bash
+# Gateway health check
+curl http://localhost:8000/health
+
+# Gateway status (includes registered services)
+curl http://localhost:8000/api/gateway/status
+
+# List registered services
+curl http://localhost:8000/api/gateway/services
+```
+
+### Configuration
+
+Environment variables for the API Gateway:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `GATEWAY_HOST` | `0.0.0.0` | Bind address |
+| `GATEWAY_PORT` | `8000` | Listen port |
+| `GATEWAY_TIMEOUT` | `30` | Default request timeout (seconds) |
+| `GATEWAY_LOG_LEVEL` | `INFO` | Logging level |
+| `SERVICE1_URL` | - | Backend URL for service1 |
+| `SERVICE2_URL` | - | Backend URL for service2 |
+
+### Error Responses
+
+The gateway returns structured error responses:
+
+```json
+{
+  "error": "service_unavailable",
+  "message": "Backend service 'service1' is not responding",
+  "path": "/api/service1/orders",
+  "timestamp": "2024-01-15T10:30:00Z",
+  "status_code": 503
+}
+```
+
+Error codes: `not_found` (404), `bad_gateway` (502), `service_unavailable` (503), `gateway_timeout` (504)
+
 ## Documentation
 
 - **Architecture Plan**: `specs/001-microservices-structure/plan.md`
 - **Feature Specification**: `specs/001-microservices-structure/spec.md`
 - **Task Contracts**: `specs/001-microservices-structure/contracts/task-contracts.md`
 - **Quick Start Guide**: `specs/001-microservices-structure/quickstart.md`
+- **API Gateway Plan**: `specs/002-api-gateway/plan.md`
+- **API Gateway Spec**: `specs/002-api-gateway/spec.md`
 
 ## POC Scope
 

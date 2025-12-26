@@ -1,0 +1,385 @@
+openapi: 3.0.3
+info:
+  title: API Gateway Service
+  description: |
+    Single entry point for the microservices architecture.
+    Routes requests to backend services and provides gateway-owned endpoints.
+  version: 0.1.0
+  contact:
+    name: API Gateway
+
+servers:
+  - url: http://localhost:8000
+    description: Local development
+
+tags:
+  - name: Proxy
+    description: Request forwarding to backend services
+  - name: Health
+    description: Gateway health monitoring
+  - name: Gateway
+    description: Gateway-owned endpoints
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Gateway health check
+      description: Returns the health status of the gateway service itself
+      operationId: healthCheck
+      responses:
+        "200":
+          description: Gateway is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+              example:
+                status: healthy
+                service: api-gateway
+                version: "0.1.0"
+                timestamp: "2025-12-26T12:00:00Z"
+        "503":
+          description: Gateway is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /api/gateway/status:
+    get:
+      tags:
+        - Gateway
+      summary: Gateway status and configuration
+      description: Returns gateway status and list of configured service routes
+      operationId: getGatewayStatus
+      responses:
+        "200":
+          description: Gateway status information
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GatewayStatus"
+              example:
+                status: running
+                version: "0.1.0"
+                services:
+                  - name: service1
+                    prefix: /api/service1
+                    status: configured
+                  - name: service2
+                    prefix: /api/service2
+                    status: configured
+
+  /api/gateway/services:
+    get:
+      tags:
+        - Gateway
+      summary: List registered backend services
+      description: Returns information about all registered backend services
+      operationId: listServices
+      responses:
+        "200":
+          description: List of backend services
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ServiceInfo"
+
+  /api/service1/{path}:
+    get:
+      tags:
+        - Proxy
+      summary: Proxy GET to service1
+      description: Forwards GET request to service1's corresponding endpoint
+      operationId: proxyService1Get
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Path to forward (e.g., "orders", "orders/123")
+      responses:
+        "200":
+          description: Successful response from service1
+          content:
+            application/json:
+              schema:
+                type: object
+        "404":
+          description: Route or resource not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GatewayError"
+        "502":
+          description: Bad gateway - invalid response from backend
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GatewayError"
+        "503":
+          description: Service unavailable - backend not reachable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GatewayError"
+        "504":
+          description: Gateway timeout - backend did not respond
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GatewayError"
+    post:
+      tags:
+        - Proxy
+      summary: Proxy POST to service1
+      description: Forwards POST request to service1's corresponding endpoint
+      operationId: proxyService1Post
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Successful response from service1
+          content:
+            application/json:
+              schema:
+                type: object
+        "201":
+          description: Resource created
+          content:
+            application/json:
+              schema:
+                type: object
+        "413":
+          description: Payload too large
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GatewayError"
+        "502":
+          description: Bad gateway
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GatewayError"
+        "503":
+          description: Service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GatewayError"
+        "504":
+          description: Gateway timeout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GatewayError"
+    put:
+      tags:
+        - Proxy
+      summary: Proxy PUT to service1
+      operationId: proxyService1Put
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+    delete:
+      tags:
+        - Proxy
+      summary: Proxy DELETE to service1
+      operationId: proxyService1Delete
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successful deletion
+          content:
+            application/json:
+              schema:
+                type: object
+        "204":
+          description: No content
+
+  /api/service2/{path}:
+    get:
+      tags:
+        - Proxy
+      summary: Proxy GET to service2
+      description: Forwards GET request to service2's corresponding endpoint
+      operationId: proxyService2Get
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successful response from service2
+          content:
+            application/json:
+              schema:
+                type: object
+        "404":
+          description: Route or resource not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GatewayError"
+        "503":
+          description: Service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GatewayError"
+    post:
+      tags:
+        - Proxy
+      summary: Proxy POST to service2
+      operationId: proxyService2Post
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      required:
+        - status
+        - service
+        - version
+        - timestamp
+      properties:
+        status:
+          type: string
+          enum: [healthy, unhealthy]
+          description: Gateway health status
+        service:
+          type: string
+          example: api-gateway
+        version:
+          type: string
+          example: "0.1.0"
+        timestamp:
+          type: string
+          format: date-time
+
+    GatewayError:
+      type: object
+      required:
+        - error
+        - message
+        - path
+        - timestamp
+        - status_code
+      properties:
+        error:
+          type: string
+          enum:
+            - not_found
+            - bad_gateway
+            - service_unavailable
+            - gateway_timeout
+            - payload_too_large
+          description: Error code
+        message:
+          type: string
+          description: Human-readable error message
+        path:
+          type: string
+          description: Original request path
+        timestamp:
+          type: string
+          format: date-time
+        status_code:
+          type: integer
+          description: HTTP status code
+
+    ServiceInfo:
+      type: object
+      required:
+        - name
+        - prefix
+        - status
+      properties:
+        name:
+          type: string
+          description: Service identifier
+          example: service1
+        prefix:
+          type: string
+          description: URL prefix for this service
+          example: /api/service1
+        status:
+          type: string
+          enum: [configured]
+          description: Service registration status
+
+    GatewayStatus:
+      type: object
+      required:
+        - status
+        - version
+        - services
+      properties:
+        status:
+          type: string
+          enum: [running, starting, stopping]
+        version:
+          type: string
+          example: "0.1.0"
+        services:
+          type: array
+          items:
+            $ref: "#/components/schemas/ServiceInfo"
