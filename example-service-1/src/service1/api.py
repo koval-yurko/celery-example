@@ -13,7 +13,18 @@ import uuid
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from .handlers import submit_order_task
+from .handlers import (
+    submit_order_task,
+    submit_add_task,
+    submit_long_running_task,
+    submit_process_data_task,
+)
+from .models import (
+    AddTaskRequest,
+    LongRunningTaskRequest,
+    ProcessDataRequest,
+    TaskSubmissionResponse,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -135,3 +146,133 @@ async def get_order_status(order_id: str) -> Dict:
         "status": "processing",
         "message": "This is a placeholder. In production, this would query the result backend.",
     }
+
+
+# Task Submission Endpoints
+
+@router.post("/api/tasks/add", response_model=TaskSubmissionResponse, status_code=202)
+async def submit_add(request: AddTaskRequest) -> TaskSubmissionResponse:
+    """
+    Submit an addition task to the Celery queue.
+
+    This endpoint publishes an addition task for asynchronous processing.
+
+    Args:
+        request: Addition task parameters (x, y)
+
+    Returns:
+        TaskSubmissionResponse with task ID for tracking
+
+    Raises:
+        HTTPException: If task submission fails
+    """
+    try:
+        logger.info(f"Received add task request: {request.x} + {request.y}")
+
+        # Submit task via handler
+        task_result = submit_add_task(x=request.x, y=request.y)
+
+        logger.info(f"Add task submitted successfully. Task ID: {task_result['task_id']}")
+
+        return TaskSubmissionResponse(
+            status="accepted",
+            task_id=task_result["task_id"],
+            task_type=task_result["task_type"],
+            submitted_at=task_result["submitted_at"],
+            message=f"Addition task accepted for processing",
+        )
+
+    except ValueError as e:
+        logger.error(f"Validation error for add task: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error submitting add task: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to submit task: {str(e)}")
+
+
+@router.post("/api/tasks/long-running", response_model=TaskSubmissionResponse, status_code=202)
+async def submit_long_running(request: LongRunningTaskRequest) -> TaskSubmissionResponse:
+    """
+    Submit a long-running task to the Celery queue.
+
+    This endpoint publishes a long-running task for asynchronous processing.
+
+    Args:
+        request: Long-running task parameters (duration)
+
+    Returns:
+        TaskSubmissionResponse with task ID for tracking
+
+    Raises:
+        HTTPException: If task submission fails
+    """
+    try:
+        logger.info(f"Received long-running task request: duration={request.duration}s")
+
+        # Submit task via handler
+        task_result = submit_long_running_task(duration=request.duration)
+
+        logger.info(f"Long-running task submitted successfully. Task ID: {task_result['task_id']}")
+
+        return TaskSubmissionResponse(
+            status="accepted",
+            task_id=task_result["task_id"],
+            task_type=task_result["task_type"],
+            submitted_at=task_result["submitted_at"],
+            message=f"Long-running task accepted for processing",
+        )
+
+    except ValueError as e:
+        logger.error(f"Validation error for long-running task: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error submitting long-running task: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to submit task: {str(e)}")
+
+
+@router.post("/api/tasks/process-data", response_model=TaskSubmissionResponse, status_code=202)
+async def submit_process_data(request: ProcessDataRequest) -> TaskSubmissionResponse:
+    """
+    Submit a data processing task to the Celery queue.
+
+    This endpoint publishes a data processing task for asynchronous processing.
+
+    Args:
+        request: Data processing task parameters (data)
+
+    Returns:
+        TaskSubmissionResponse with task ID for tracking
+
+    Raises:
+        HTTPException: If task submission fails
+    """
+    try:
+        logger.info(f"Received process-data task request")
+
+        # Submit task via handler
+        task_result = submit_process_data_task(data=request.data)
+
+        logger.info(f"Process-data task submitted successfully. Task ID: {task_result['task_id']}")
+
+        return TaskSubmissionResponse(
+            status="accepted",
+            task_id=task_result["task_id"],
+            task_type=task_result["task_type"],
+            submitted_at=task_result["submitted_at"],
+            message=f"Data processing task accepted for processing",
+        )
+
+    except ValueError as e:
+        logger.error(f"Validation error for process-data task: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error submitting process-data task: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to submit task: {str(e)}")
+
+
+# NOTE: Task query endpoints (status, result, history) have been moved to the API Gateway
+# to avoid duplication. Both service-1 and service-2 share the same Redis result backend,
+# so these endpoints are now centralized at:
+# - GET /api/tasks/{task_id}/status (in API Gateway)
+# - GET /api/tasks/{task_id}/result (in API Gateway)
+# - GET /api/tasks/history (in API Gateway)

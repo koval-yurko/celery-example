@@ -37,7 +37,7 @@ celery_app.conf.update(
     },
 
     # Result backend settings
-    result_expires=3600,  # Results expire after 1 hour
+    result_expires=None,  # Indefinite retention for task history (per FR-021)
 
     # Task execution settings
     task_acks_late=True,  # Acknowledge tasks after execution (for crash resilience)
