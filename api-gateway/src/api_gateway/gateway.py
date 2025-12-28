@@ -4,9 +4,9 @@ Gateway Status Module
 Provides gateway-owned endpoints for service discovery and status.
 """
 
-from api_gateway import __version__
-from api_gateway.config import load_config
-from api_gateway.schemas import GatewayStatus, ServiceInfo
+from . import __version__
+from .config import load_config
+from .schemas import GatewayStatus, ServiceInfo
 
 
 def list_services() -> list[ServiceInfo]:

@@ -6,8 +6,8 @@ Provides health check functionality for the API gateway.
 
 from datetime import datetime, timezone
 
-from api_gateway import __version__
-from api_gateway.schemas import HealthStatus
+from . import __version__
+from .schemas import HealthStatus
 
 
 def health_check() -> HealthStatus:

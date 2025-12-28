@@ -147,7 +147,7 @@ def submit_multiply_task(x: float, y: float) -> Dict[str, Any]:
     """
     logger.info(f"Submitting multiply task: {x} * {y}")
 
-    result = celery_app.send_task("multiply", args=[x, y])
+    result = celery_app.send_task("multiply", args=[x, y], queue="default")
 
     logger.info(f"Multiply task submitted successfully. Task ID: {result.id}")
 
@@ -171,7 +171,7 @@ def submit_progress_task(iterations: int) -> Dict[str, Any]:
     """
     logger.info(f"Submitting progress task with iterations={iterations}")
 
-    result = celery_app.send_task("task_with_progress", args=[iterations])
+    result = celery_app.send_task("task_with_progress", args=[iterations], queue="default")
 
     logger.info(f"Progress task submitted successfully. Task ID: {result.id}")
 
@@ -196,7 +196,7 @@ def submit_configurable_task(duration: int, should_succeed: bool) -> Dict[str, A
     """
     logger.info(f"Submitting configurable task: duration={duration}s, should_succeed={should_succeed}")
 
-    result = celery_app.send_task("configurable_outcome_task", args=[duration, should_succeed])
+    result = celery_app.send_task("configurable_outcome_task", args=[duration, should_succeed], queue="default")
 
     logger.info(f"Configurable task submitted successfully. Task ID: {result.id}")
 

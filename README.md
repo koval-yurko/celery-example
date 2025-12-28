@@ -99,6 +99,11 @@ uv sync
 uv run python -m service1.main
 ```
 
+Install both dependencies
+```
+uv pip install -e ./common -e ./api-gateway
+```
+
 ### Testing Service Isolation
 
 ```bash

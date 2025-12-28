@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 
 from fastapi.responses import JSONResponse
 
-from api_gateway.schemas import ErrorCode, GatewayError
+from .schemas import ErrorCode, GatewayError
 
 
 def create_gateway_error(

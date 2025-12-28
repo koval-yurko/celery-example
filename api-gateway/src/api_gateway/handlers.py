@@ -277,7 +277,7 @@ def get_task_history(
             # Scan all tasks using optimized pipeline queries
             # First, scan for task IDs
             task_ids = []
-            for task_meta in history.scan_all_tasks_paginated(batch_size=100):
+            for task_meta in history.scan_all_tasks_paginated(page_size=100):
                 task_ids.append(task_meta.get("task_id", ""))
 
             # Then fetch full task data using Redis pipelines for better performance

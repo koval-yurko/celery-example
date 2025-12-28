@@ -9,15 +9,15 @@ import uuid
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
-from api_gateway.config import load_config
-from api_gateway.errors import create_gateway_error
-from api_gateway.gateway import get_gateway_status, list_services
-from api_gateway.handlers import get_task_history, get_task_result, get_task_status
-from api_gateway.health import health_check
-from api_gateway.models import TaskHistoryResponse, TaskResultResponse, TaskStatusResponse
-from api_gateway.proxy import proxy_request, rewrite_path
-from api_gateway.routing import match_route
-from api_gateway.schemas import ErrorCode, GatewayStatus, HealthStatus, ServiceInfo
+from .config import load_config
+from .errors import create_gateway_error
+from .gateway import get_gateway_status, list_services
+from .handlers import get_task_history, get_task_result, get_task_status
+from .health import health_check
+from .models import TaskHistoryResponse, TaskResultResponse, TaskStatusResponse
+from .proxy import proxy_request, rewrite_path
+from .routing import match_route
+from .schemas import ErrorCode, GatewayStatus, HealthStatus, ServiceInfo
 
 router = APIRouter()
 

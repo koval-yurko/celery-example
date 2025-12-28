@@ -11,9 +11,9 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 import uvicorn
 
-from api_gateway import __version__
-from api_gateway.config import load_config
-from api_gateway.log_config import get_logger, setup_logging
+from . import __version__
+from .config import load_config
+from .log_config import get_logger, setup_logging
 
 # Load environment variables
 load_dotenv()
@@ -57,8 +57,8 @@ app = FastAPI(
 )
 
 # Import and include routers/middleware after app creation to avoid circular imports
-from api_gateway.api import router  # noqa: E402
-from api_gateway.middleware import RequestLoggingMiddleware  # noqa: E402
+from .api import router  # noqa: E402
+from .middleware import RequestLoggingMiddleware  # noqa: E402
 
 # Add middleware
 app.add_middleware(RequestLoggingMiddleware)

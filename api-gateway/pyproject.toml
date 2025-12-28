@@ -4,6 +4,8 @@ version = "0.1.0"
 description = "API Gateway service - single entry point for the microservices architecture"
 requires-python = ">=3.11"
 dependencies = [
+    "celery>=5.3.0",
+    "redis>=5.0.0",
     "fastapi>=0.100.0",
     "httpx>=0.25.0",
     "uvicorn>=0.23.0",

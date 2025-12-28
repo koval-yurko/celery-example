@@ -11,8 +11,8 @@ import httpx
 from fastapi import Request
 from fastapi.responses import StreamingResponse
 
-from api_gateway.config import ServiceRoute, load_config
-from api_gateway.log_config import get_logger
+from .config import ServiceRoute, load_config
+from .log_config import get_logger
 
 # Headers to strip when forwarding (hop-by-hop headers per RFC 7230)
 HOP_BY_HOP_HEADERS = {

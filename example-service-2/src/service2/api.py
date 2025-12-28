@@ -266,10 +266,3 @@ async def submit_configurable(request: ConfigurableOutcomeTaskRequest) -> TaskSu
         logger.error(f"Error submitting configurable task: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to submit task: {str(e)}")
 
-
-# NOTE: Task query endpoints (status, result, history) have been moved to the API Gateway
-# to avoid duplication. Both service-1 and service-2 share the same Redis result backend,
-# so these endpoints are now centralized at:
-# - GET /api/tasks/{task_id}/status (in API Gateway)
-# - GET /api/tasks/{task_id}/result (in API Gateway)
-# - GET /api/tasks/history (in API Gateway)

@@ -95,7 +95,7 @@ def submit_add_task(x: float, y: float) -> Dict[str, Any]:
     """
     logger.info(f"Submitting add task: {x} + {y}")
 
-    result = celery_app.send_task("add", args=[x, y])
+    result = celery_app.send_task("add", args=[x, y], queue="default")
 
     logger.info(f"Add task submitted successfully. Task ID: {result.id}")
 
@@ -119,7 +119,7 @@ def submit_long_running_task(duration: int) -> Dict[str, Any]:
     """
     logger.info(f"Submitting long-running task with duration={duration}s")
 
-    result = celery_app.send_task("long_running_task", args=[duration])
+    result = celery_app.send_task("long_running_task", args=[duration], queue="default")
 
     logger.info(f"Long-running task submitted successfully. Task ID: {result.id}")
 
@@ -143,7 +143,7 @@ def submit_process_data_task(data: Dict[str, Any]) -> Dict[str, Any]:
     """
     logger.info(f"Submitting process_data task")
 
-    result = celery_app.send_task("process_data", args=[data])
+    result = celery_app.send_task("process_data", args=[data], queue="default")
 
     logger.info(f"Process data task submitted successfully. Task ID: {result.id}")
 

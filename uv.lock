@@ -60,19 +60,23 @@ name = "api-gateway"
 version = "0.1.0"
 source = { editable = "api-gateway" }
 dependencies = [
+    { name = "celery" },
     { name = "fastapi" },
     { name = "httpx" },
     { name = "pydantic" },
     { name = "python-dotenv" },
+    { name = "redis" },
     { name = "uvicorn" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "celery", specifier = ">=5.3.0" },
     { name = "fastapi", specifier = ">=0.100.0" },
     { name = "httpx", specifier = ">=0.25.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
+    { name = "redis", specifier = ">=5.0.0" },
     { name = "uvicorn", specifier = ">=0.23.0" },
 ]
 
