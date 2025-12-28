@@ -125,21 +125,28 @@ async def task_result(task_id: str):
 
 
 @router.get("/api/tasks/history", response_model=TaskHistoryResponse)
-async def task_history(limit: int = 100, offset: int = 0):
+async def task_history(
+    limit: int = 100,
+    offset: int = 0,
+    task_type: str = None,
+    state: str = None
+):
     """
-    Get task history from all services.
+    Get task history from all services with optional filtering.
 
     Queries the shared Redis result backend to retrieve all tasks regardless
-    of which service submitted them.
+    of which service submitted them. Supports filtering by task type and state.
 
     Args:
         limit: Maximum number of tasks to return (default: 100)
         offset: Number of tasks to skip (default: 0)
+        task_type: Optional filter by task type (e.g., 'add', 'multiply')
+        state: Optional filter by state (e.g., 'SUCCESS', 'FAILURE', 'PENDING')
 
     Returns:
-        TaskHistoryResponse with list of all tasks
+        TaskHistoryResponse with list of all tasks (filtered if parameters provided)
     """
-    return get_task_history(limit, offset)
+    return get_task_history(limit, offset, task_type, state)
 
 
 async def _handle_proxy_request(request: Request, original_path: str):

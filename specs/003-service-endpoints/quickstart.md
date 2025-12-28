@@ -44,11 +44,11 @@ curl -X POST http://localhost:8001/api/tasks/add \
 }
 ```
 
-### 3. Check Task Status
+### 3. Check Task Status (via API Gateway)
 
 ```bash
-# Query task status
-curl http://localhost:8001/api/tasks/abc123-def456-.../status
+# Query task status through API Gateway (works for tasks from ANY service)
+curl http://localhost:8000/api/tasks/abc123-def456-.../status
 
 # Response while running:
 {
@@ -73,11 +73,11 @@ curl http://localhost:8001/api/tasks/abc123-def456-.../status
 }
 ```
 
-### 4. Get Task Result
+### 4. Get Task Result (via API Gateway)
 
 ```bash
-# Retrieve task result
-curl http://localhost:8001/api/tasks/abc123-def456-.../result
+# Retrieve task result through API Gateway (works for tasks from ANY service)
+curl http://localhost:8000/api/tasks/abc123-def456-.../result
 
 # Response:
 {
@@ -92,11 +92,11 @@ curl http://localhost:8001/api/tasks/abc123-def456-.../result
 }
 ```
 
-### 5. View Task History
+### 5. View Task History (via API Gateway)
 
 ```bash
-# Get all tasks
-curl http://localhost:8001/api/tasks/history
+# Get all tasks through API Gateway (returns tasks from ALL services)
+curl http://localhost:8000/api/tasks/history
 
 # Response:
 {
@@ -118,27 +118,41 @@ curl http://localhost:8001/api/tasks/history
 
 ## Available Endpoints
 
-### Service-1 (Port 8001)
+### API Gateway (Port 8000) - Task Query Endpoints
+
+**Centralized endpoints for querying tasks from ALL services:**
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/tasks/{task_id}/status` | Get task status (any service) |
+| GET | `/api/tasks/{task_id}/result` | Get task result (any service) |
+| GET | `/api/tasks/history` | Get all tasks (with filtering) |
+
+**Query Parameters for `/api/tasks/history`:**
+- `limit` - Maximum tasks to return (default: 100)
+- `offset` - Number of tasks to skip (default: 0)
+- `task_type` - Filter by task type (e.g., 'add', 'multiply')
+- `state` - Filter by state (e.g., 'SUCCESS', 'FAILURE', 'PENDING')
+
+### Service-1 (Port 8001) - Task Submission
+
+**Task submission endpoints (accessed via API Gateway at `/api/service1/*`):**
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/api/tasks/add` | Submit addition task |
 | POST | `/api/tasks/long-running` | Submit long-running task |
 | POST | `/api/tasks/process-data` | Submit data processing task |
-| GET | `/api/tasks/{task_id}/status` | Get task status |
-| GET | `/api/tasks/{task_id}/result` | Get task result |
-| GET | `/api/tasks/history` | Get all tasks |
 
-### Service-2 (Port 8002)
+### Service-2 (Port 8002) - Task Submission
+
+**Task submission endpoints (accessed via API Gateway at `/api/service2/*`):**
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/api/tasks/multiply` | Submit multiplication task |
 | POST | `/api/tasks/progress` | Submit progress-tracked task |
 | POST | `/api/tasks/configurable` | Submit configurable outcome task |
-| GET | `/api/tasks/{task_id}/status` | Get task status |
-| GET | `/api/tasks/{task_id}/result` | Get task result |
-| GET | `/api/tasks/history` | Get all tasks |
 
 ## Example Workflows
 
@@ -157,14 +171,14 @@ curl -X POST http://localhost:8002/api/tasks/multiply \
 ### Long-Running Task with Progress
 
 ```bash
-# Submit progress task (20 iterations)
-TASK_ID=$(curl -X POST http://localhost:8002/api/tasks/progress \
+# Submit progress task (20 iterations) via API Gateway
+TASK_ID=$(curl -X POST http://localhost:8000/api/service2/tasks/progress \
   -d '{"iterations": 20}' -H "Content-Type: application/json" \
   | jq -r '.task_id')
 
-# Poll for progress
+# Poll for progress via API Gateway
 while true; do
-  curl http://localhost:8002/api/tasks/$TASK_ID/status | jq '.progress'
+  curl http://localhost:8000/api/tasks/$TASK_ID/status | jq '.progress'
   sleep 1
 done
 ```
@@ -172,18 +186,18 @@ done
 ### Test Success and Failure Scenarios
 
 ```bash
-# Submit task configured to succeed
-curl -X POST http://localhost:8002/api/tasks/configurable \
+# Submit task configured to succeed via API Gateway
+curl -X POST http://localhost:8000/api/service2/tasks/configurable \
   -d '{"duration": 5, "should_succeed": true}' \
   -H "Content-Type: application/json"
 
-# Submit task configured to fail
-curl -X POST http://localhost:8002/api/tasks/configurable \
+# Submit task configured to fail via API Gateway
+curl -X POST http://localhost:8000/api/service2/tasks/configurable \
   -d '{"duration": 3, "should_succeed": false}' \
   -H "Content-Type: application/json"
 
-# Check failure details
-curl http://localhost:8002/api/tasks/$TASK_ID/result
+# Check failure details via API Gateway
+curl http://localhost:8000/api/tasks/$TASK_ID/result
 # Returns error message and traceback
 ```
 
@@ -253,9 +267,19 @@ curl -X POST http://localhost:8001/api/tasks/add -d '{"x": 1, "y": 2}'
    curl -H "X-Correlation-ID: my-test-123" ...
    ```
 
-2. **Filter task history** by state:
+2. **Filter task history** by state and/or type via API Gateway:
    ```bash
-   curl "http://localhost:8001/api/tasks/history?state=FAILURE"
+   # Filter by state only
+   curl "http://localhost:8000/api/tasks/history?state=FAILURE"
+
+   # Filter by task type only
+   curl "http://localhost:8000/api/tasks/history?task_type=add"
+
+   # Filter by both state and type
+   curl "http://localhost:8000/api/tasks/history?task_type=multiply&state=SUCCESS"
+
+   # Pagination
+   curl "http://localhost:8000/api/tasks/history?limit=50&offset=100"
    ```
 
 3. **Monitor Redis**:
