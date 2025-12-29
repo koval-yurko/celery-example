@@ -1,0 +1,55 @@
+# SonarCloud Analysis Workflow
+# Feature: 004-sonarqube-pipeline
+# Triggers on PR events and push to main
+# Uses uv for dependency management per project constitution
+# Collects coverage from all monorepo packages
+
+name: SonarCloud Analysis
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - main
+
+jobs:
+  sonarcloud:
+    name: SonarCloud Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history needed for accurate analysis
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: |
+          uv sync --all-packages
+
+      - name: Run tests with coverage
+        run: |
+          uv run pytest \
+            --cov=common/src \
+            --cov=api-gateway/src \
+            --cov=example-service-1/src \
+            --cov=example-service-2/src \
+            --cov=worker/src \
+            --cov-report=xml:coverage.xml \
+            --cov-report=term-missing \
+            || true
+        continue-on-error: true
+
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
