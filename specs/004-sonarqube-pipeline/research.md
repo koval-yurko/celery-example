@@ -129,7 +129,77 @@ env:
   SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 ```
 
-### 8. Error Handling Strategy
+### 8. Dependency Management in CI/CD
+
+**Decision**: Use `uv` for dependency installation in GitHub Actions workflow
+
+**Rationale**:
+- Project constitution mandates `uv` as the standard dependency management tool
+- `uv` is significantly faster than pip for dependency resolution and installation
+- Consistent with local development workflow
+- Supports monorepo workspace configuration
+
+**Implementation**:
+```yaml
+- name: Install uv
+  uses: astral-sh/setup-uv@v4
+
+- name: Install dependencies
+  run: |
+    uv sync --all-packages
+```
+
+**Alternatives Considered**:
+| Option | Pros | Cons | Why Rejected |
+|--------|------|------|--------------|
+| pip install | Universal, simple | Slow, no lockfile support | Constitution requires uv |
+| poetry | Good dependency management | Slower than uv, different from local | Constitution requires uv |
+| uv | Fast, lockfile support, constitution compliant | Newer tool | Selected - per constitution |
+
+### 9. Monorepo Test Coverage Collection
+
+**Decision**: Use pytest-cov with multiple `--cov` flags to collect coverage from all package source directories
+
+**Rationale**:
+- This is a Python monorepo with multiple packages: common, api-gateway, example-service-1, example-service-2, worker
+- Each package has its own `src/` directory with source code
+- Coverage must aggregate across all packages for accurate SonarCloud reporting
+- Single coverage.xml file required by SonarCloud
+
+**Implementation**:
+```yaml
+- name: Run tests with coverage
+  run: |
+    uv run pytest \
+      --cov=common/src \
+      --cov=api-gateway/src \
+      --cov=example-service-1/src \
+      --cov=example-service-2/src \
+      --cov=worker/src \
+      --cov-report=xml:coverage.xml \
+      --cov-report=term-missing
+```
+
+**SonarCloud Configuration**:
+```properties
+# Source directories for monorepo
+sonar.sources=common/src,api-gateway/src,example-service-1/src,example-service-2/src,worker/src
+
+# Test directories
+sonar.tests=common/tests,api-gateway/tests,example-service-1/tests,example-service-2/tests,worker/tests
+
+# Coverage report
+sonar.python.coverage.reportPaths=coverage.xml
+```
+
+**Alternatives Considered**:
+| Option | Pros | Cons | Why Rejected |
+|--------|------|------|--------------|
+| Single --cov=. | Simple | Includes non-source dirs, slower | Inefficient, includes venv |
+| coverage.py combine | Full control | Complex setup, extra steps | Unnecessary complexity |
+| Multiple --cov flags | Precise, fast | More verbose | Selected - exact source targeting |
+
+### 10. Error Handling Strategy
 
 **Decision**: Use `continue-on-error: false` with clear failure messages
 
@@ -156,6 +226,8 @@ env:
 | Quality Gates | Managed in SonarCloud UI |
 | Secrets | GitHub repository secrets (`SONAR_TOKEN`) |
 | PR Decoration | SonarCloud GitHub App |
+| Dependency Management | `uv` via `astral-sh/setup-uv@v4` action |
+| Monorepo Coverage | Multiple `--cov` flags for each package src/ |
 | Error Handling | Fail workflow on any error |
 
 ## Prerequisites Checklist

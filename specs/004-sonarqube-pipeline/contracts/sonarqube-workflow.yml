@@ -1,6 +1,8 @@
 # Contract: SonarQube GitHub Actions Workflow
 # Feature: 004-sonarqube-pipeline
 # Description: GitHub Actions workflow configuration for SonarCloud analysis
+# Uses uv for dependency management per project constitution
+# Collects coverage from all monorepo packages
 #
 # This is a CONTRACT file - it defines the expected structure and configuration
 # for the actual implementation file at .github/workflows/sonarqube.yml
@@ -30,16 +32,24 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install pytest pytest-cov
-          # Install project dependencies if requirements exist
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          uv sync --all-packages
 
       - name: Run tests with coverage
         run: |
-          pytest --cov=src --cov-report=xml:coverage.xml || true
+          uv run pytest \
+            --cov=common/src \
+            --cov=api-gateway/src \
+            --cov=example-service-1/src \
+            --cov=example-service-2/src \
+            --cov=worker/src \
+            --cov-report=xml:coverage.xml \
+            --cov-report=term-missing \
+            || true
         continue-on-error: true
 
       - name: SonarCloud Scan

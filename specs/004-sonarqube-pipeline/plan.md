@@ -19,6 +19,10 @@ Add automated SonarQube code quality analysis to the GitHub CI/CD pipeline. The 
 **Constraints**: Requires SonarQube server/cloud accessible from GitHub Actions
 **Scale/Scope**: Single repository, Python microservices codebase
 
+**Dependency Management**: This project uses `uv` as the standard tool for dependency management. The GitHub Actions workflow MUST use `uv` for installing project dependencies instead of pip.
+
+**Monorepo Structure**: This is a monorepo with multiple Python packages (common, api-gateway, example-service-1, example-service-2, worker). Test coverage collection MUST aggregate coverage from all packages intelligently using pytest-cov's `--cov` flag for each package source directory.
+
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
@@ -30,7 +34,7 @@ Add automated SonarQube code quality analysis to the GitHub CI/CD pipeline. The 
 | III. Monitoring & Observability | ✅ PASS | SonarQube provides comprehensive code quality metrics and reports |
 | IV. Error Handling & Resilience | ✅ PASS | Workflow includes graceful error handling for SonarQube unavailability |
 | V. Simplicity First | ✅ PASS | Uses standard GitHub Actions + SonarQube scanner - minimal complexity |
-| Dependency Management | ✅ PASS | No new Python dependencies - uses SonarQube official scanner |
+| Dependency Management | ✅ PASS | Workflow uses `uv` for dependency installation per constitution |
 
 **Gate Status**: PASS - No violations. Proceeding to Phase 0.
 
@@ -51,14 +55,22 @@ specs/004-sonarqube-pipeline/
 ### Source Code (repository root)
 
 ```text
+# Monorepo structure
 .github/
 └── workflows/
     └── sonarqube.yml    # SonarQube analysis workflow
 
 sonar-project.properties # SonarQube project configuration (root)
+
+# Python packages (coverage sources)
+common/src/              # Shared utilities
+api-gateway/src/         # API gateway service
+example-service-1/src/   # Example service 1
+example-service-2/src/   # Example service 2
+worker/src/              # Celery worker
 ```
 
-**Structure Decision**: CI/CD configuration stored in standard `.github/workflows/` directory. SonarQube configuration in repository root following standard conventions.
+**Structure Decision**: CI/CD configuration stored in standard `.github/workflows/` directory. SonarQube configuration in repository root. Coverage collection must span all package `src/` directories in the monorepo.
 
 ## Complexity Tracking
 

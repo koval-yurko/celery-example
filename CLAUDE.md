@@ -28,8 +28,8 @@ Python 3.11+: Follow standard conventions
 
 ## Recent Changes
 - 004-sonarqube-pipeline: Added YAML (GitHub Actions), Python 3.11+ (project being analyzed) + GitHub Actions, SonarQube Scanner, sonar-scanner-cli
+- 004-sonarqube-pipeline: Added YAML (GitHub Actions), Python 3.11+ (project being analyzed) + GitHub Actions, SonarQube Scanner, sonar-scanner-cli
 - 002-api-gateway: Added Python 3.11+ (consistent with existing services) + FastAPI 0.100+, httpx 0.25+ (async HTTP client), uvicorn 0.23+
-- 001-microservices-structure: Added Python 3.11+ + Celery 5.3+, Redis 7.0+, Docker 24.0+, Docker Compose 2.20+
 
 
 <!-- MANUAL ADDITIONS START -->
