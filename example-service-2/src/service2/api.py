@@ -176,7 +176,7 @@ async def submit_multiply(request: MultiplyTaskRequest) -> TaskSubmissionRespons
             task_id=task_result["task_id"],
             task_type=task_result["task_type"],
             submitted_at=task_result["submitted_at"],
-            message=f"Multiplication task accepted for processing",
+            message="Multiplication task accepted for processing",
         )
 
     except ValueError as e:
@@ -216,7 +216,7 @@ async def submit_progress(request: ProgressTaskRequest) -> TaskSubmissionRespons
             task_id=task_result["task_id"],
             task_type=task_result["task_type"],
             submitted_at=task_result["submitted_at"],
-            message=f"Progress-tracked task accepted for processing",
+            message="Progress-tracked task accepted for processing",
         )
 
     except ValueError as e:
@@ -256,7 +256,7 @@ async def submit_configurable(request: ConfigurableOutcomeTaskRequest) -> TaskSu
             task_id=task_result["task_id"],
             task_type=task_result["task_type"],
             submitted_at=task_result["submitted_at"],
-            message=f"Configurable outcome task accepted for processing",
+            message="Configurable outcome task accepted for processing",
         )
 
     except ValueError as e:

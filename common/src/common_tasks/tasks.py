@@ -237,7 +237,7 @@ def task_with_progress(self, total: int = 100) -> Dict:
         )
         time.sleep(0.1)  # Simulate work
 
-    logger.info(f"Progress task completed")
+    logger.info("Progress task completed")
     return {
         'current': total,
         'total': total,
@@ -272,7 +272,7 @@ def process_data(data: Dict) -> Dict:
         'timestamp': time.time()
     }
 
-    logger.info(f"Data processing completed")
+    logger.info("Data processing completed")
     return result
 
 

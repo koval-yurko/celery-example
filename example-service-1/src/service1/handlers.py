@@ -141,7 +141,7 @@ def submit_process_data_task(data: Dict[str, Any]) -> Dict[str, Any]:
     Returns:
         dict: Task submission result with task_id and metadata
     """
-    logger.info(f"Submitting process_data task")
+    logger.info("Submitting process_data task")
 
     result = celery_app.send_task("process_data", args=[data], queue="default")
 

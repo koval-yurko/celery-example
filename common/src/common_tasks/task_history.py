@@ -191,12 +191,6 @@ class CeleryTaskHistory:
                 "traceback": None,
             }
 
-        finally:
-            try:
-                result.forget()
-            except:
-                pass
-
     def get_multiple_task_metadata(self, task_ids: List[str]) -> List[Dict[str, Any]]:
         """
         Retrieve metadata for multiple tasks efficiently.
@@ -213,43 +207,35 @@ class CeleryTaskHistory:
         metadata_list = []
         results = [AsyncResult(tid) for tid in task_ids]
 
-        try:
-            for result in results:
-                try:
-                    info = result.info
+        for result in results:
+            try:
+                info = result.info
 
-                    metadata = {
-                        "task_id": result.id,
-                        "state": result.state,
-                        "result": None,
-                        "error": None,
-                    }
+                metadata = {
+                    "task_id": result.id,
+                    "state": result.state,
+                    "result": None,
+                    "error": None,
+                }
 
-                    if isinstance(info, dict):
-                        metadata["result"] = info.get('result')
-                        metadata["error"] = info.get('exc_message')
-                    elif isinstance(info, Exception):
-                        metadata["error"] = str(info)
-                    elif result.successful():
-                        metadata["result"] = result.result
+                if isinstance(info, dict):
+                    metadata["result"] = info.get('result')
+                    metadata["error"] = info.get('exc_message')
+                elif isinstance(info, Exception):
+                    metadata["error"] = str(info)
+                elif result.successful():
+                    metadata["result"] = result.result
 
-                    metadata_list.append(metadata)
+                metadata_list.append(metadata)
 
-                except Exception as e:
-                    metadata_list.append({
-                        "task_id": result.id,
-                        "state": result.state,
-                        "error": f"Failed to retrieve: {str(e)}"
-                    })
+            except Exception as e:
+                metadata_list.append({
+                    "task_id": result.id,
+                    "state": result.state,
+                    "error": f"Failed to retrieve: {str(e)}"
+                })
 
-            return metadata_list
-
-        finally:
-            for result in results:
-                try:
-                    result.forget()
-                except:
-                    pass
+        return metadata_list
 
 
 class OptimizedTaskHistoryQuery:
@@ -523,12 +509,6 @@ class RobustTaskQueryHandler:
                     'message': f'Backend query failed: {str(e)}'
                 }
             }
-
-        finally:
-            try:
-                result.forget()
-            except:
-                pass
 
 
 class TaskTypeFilter:

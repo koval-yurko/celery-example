@@ -179,7 +179,7 @@ async def submit_add(request: AddTaskRequest) -> TaskSubmissionResponse:
             task_id=task_result["task_id"],
             task_type=task_result["task_type"],
             submitted_at=task_result["submitted_at"],
-            message=f"Addition task accepted for processing",
+            message="Addition task accepted for processing",
         )
 
     except ValueError as e:
@@ -219,7 +219,7 @@ async def submit_long_running(request: LongRunningTaskRequest) -> TaskSubmission
             task_id=task_result["task_id"],
             task_type=task_result["task_type"],
             submitted_at=task_result["submitted_at"],
-            message=f"Long-running task accepted for processing",
+            message="Long-running task accepted for processing",
         )
 
     except ValueError as e:
@@ -247,7 +247,7 @@ async def submit_process_data(request: ProcessDataRequest) -> TaskSubmissionResp
         HTTPException: If task submission fails
     """
     try:
-        logger.info(f"Received process-data task request")
+        logger.info("Received process-data task request")
 
         # Submit task via handler
         task_result = submit_process_data_task(data=request.data)
@@ -259,7 +259,7 @@ async def submit_process_data(request: ProcessDataRequest) -> TaskSubmissionResp
             task_id=task_result["task_id"],
             task_type=task_result["task_type"],
             submitted_at=task_result["submitted_at"],
-            message=f"Data processing task accepted for processing",
+            message="Data processing task accepted for processing",
         )
 
     except ValueError as e:
