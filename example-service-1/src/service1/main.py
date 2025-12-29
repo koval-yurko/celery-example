@@ -9,7 +9,7 @@ import logging
 import uuid
 from contextvars import ContextVar
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
@@ -74,7 +74,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
             "message": exc.detail,
             "details": getattr(exc, "details", None),
             "task_id": getattr(exc, "task_id", None),
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
     )
 
@@ -89,7 +89,7 @@ async def general_exception_handler(request: Request, exc: Exception):
             "error": "internal_server_error",
             "message": "An unexpected error occurred",
             "details": {"exception": str(exc)},
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
     )
 

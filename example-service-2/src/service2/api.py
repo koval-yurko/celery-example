@@ -6,7 +6,7 @@ RESTful API for notification management and health checks.
 
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException
@@ -80,7 +80,7 @@ async def health_check() -> HealthResponse:
     return HealthResponse(
         status="healthy",
         service="example-service-2",
-        timestamp=datetime.utcnow().isoformat(),
+        timestamp=datetime.now(timezone.utc).isoformat(),
         redis_configured=bool(os.getenv("REDIS_BROKER_URL")),
     )
 

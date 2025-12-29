@@ -7,7 +7,7 @@ Can be called either from Celery tasks or direct API requests.
 
 import logging
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any
 
 from common_tasks.schemas import NotificationPayload, NotificationType
@@ -46,7 +46,7 @@ class NotificationHandler:
             dict: Delivery result
         """
         try:
-            notification_id = f"NOTIF-{datetime.utcnow().strftime('%Y%m%d')}-{uuid.uuid4().hex[:6]}"
+            notification_id = f"NOTIF-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{uuid.uuid4().hex[:6]}"
 
             # Validate notification type
             try:
@@ -73,7 +73,7 @@ class NotificationHandler:
                 "notification_id": notification_id,
                 "recipient": recipient,
                 "notification_type": notification_type,
-                "sent_at": datetime.utcnow().isoformat(),
+                "sent_at": datetime.now(timezone.utc).isoformat(),
                 "delivery_id": f"msg_{notification_id}",
             }
 
@@ -155,7 +155,7 @@ def submit_multiply_task(x: float, y: float) -> Dict[str, Any]:
         "task_id": result.id,
         "task_type": "multiply",
         "status": "submitted",
-        "submitted_at": datetime.utcnow(),
+        "submitted_at": datetime.now(timezone.utc),
     }
 
 
@@ -179,7 +179,7 @@ def submit_progress_task(iterations: int) -> Dict[str, Any]:
         "task_id": result.id,
         "task_type": "task_with_progress",
         "status": "submitted",
-        "submitted_at": datetime.utcnow(),
+        "submitted_at": datetime.now(timezone.utc),
     }
 
 
@@ -204,7 +204,7 @@ def submit_configurable_task(duration: int, should_succeed: bool) -> Dict[str, A
         "task_id": result.id,
         "task_type": "configurable_outcome_task",
         "status": "submitted",
-        "submitted_at": datetime.utcnow(),
+        "submitted_at": datetime.now(timezone.utc),
     }
 
 

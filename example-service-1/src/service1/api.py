@@ -6,7 +6,7 @@ RESTful API for submitting orders and checking health.
 
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict
 import uuid
 
@@ -73,7 +73,7 @@ async def health_check() -> HealthResponse:
     return HealthResponse(
         status="healthy",
         service="example-service-1",
-        timestamp=datetime.utcnow().isoformat(),
+        timestamp=datetime.now(timezone.utc).isoformat(),
         redis_configured=bool(redis_url),
     )
 

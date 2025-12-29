@@ -5,7 +5,7 @@ Centralized task definitions used by all microservices and workers.
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict
 
 from .celery_app import celery_app
@@ -51,7 +51,7 @@ def process_order(payload: Dict) -> Dict:
         result = {
             "status": "success",
             "order_id": order_data.order_id,
-            "processed_at": datetime.utcnow().isoformat(),
+            "processed_at": datetime.now(timezone.utc).isoformat(),
             "message": f"Order {order_data.order_id} processed successfully",
         }
 
@@ -99,7 +99,7 @@ def send_notification(payload: Dict) -> Dict:
         result = {
             "status": "sent",
             "notification_id": notif_data.notification_id,
-            "sent_at": datetime.utcnow().isoformat(),
+            "sent_at": datetime.now(timezone.utc).isoformat(),
             "delivery_id": f"msg_{notif_data.notification_id}",
         }
 
@@ -126,7 +126,7 @@ def health_check() -> Dict:
 
     return {
         "status": "healthy",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "worker_id": f"{socket.gethostname()}",
     }
 

@@ -6,7 +6,7 @@ Business logic for publishing tasks to Celery queues.
 
 import logging
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any
 
 from common_tasks.schemas import OrderPayload, OrderPriority
@@ -48,7 +48,7 @@ def submit_order_task(
         # Validate and create order payload
         order_payload = OrderPayload(
             task_id=task_id,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             source_service="example-service-1",
             order_id=order_id,
             customer_id=customer_id,
@@ -69,7 +69,7 @@ def submit_order_task(
             "task_id": result.id,
             "order_id": order_id,
             "status": "submitted",
-            "submitted_at": datetime.utcnow().isoformat(),
+            "submitted_at": datetime.now(timezone.utc).isoformat(),
         }
 
     except ValueError as e:
@@ -103,7 +103,7 @@ def submit_add_task(x: float, y: float) -> Dict[str, Any]:
         "task_id": result.id,
         "task_type": "add",
         "status": "submitted",
-        "submitted_at": datetime.utcnow(),
+        "submitted_at": datetime.now(timezone.utc),
     }
 
 
@@ -127,7 +127,7 @@ def submit_long_running_task(duration: int) -> Dict[str, Any]:
         "task_id": result.id,
         "task_type": "long_running_task",
         "status": "submitted",
-        "submitted_at": datetime.utcnow(),
+        "submitted_at": datetime.now(timezone.utc),
     }
 
 
@@ -151,7 +151,7 @@ def submit_process_data_task(data: Dict[str, Any]) -> Dict[str, Any]:
         "task_id": result.id,
         "task_type": "process_data",
         "status": "submitted",
-        "submitted_at": datetime.utcnow(),
+        "submitted_at": datetime.now(timezone.utc),
     }
 
 

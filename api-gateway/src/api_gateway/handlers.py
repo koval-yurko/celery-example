@@ -15,7 +15,8 @@ from celery.result import AsyncResult
 from fastapi import HTTPException
 
 from common_tasks.celery_app import celery_app
-from .utils import parse_date_done
+from common_tasks.task_history import CeleryTaskHistory, TaskTypeFilter, OptimizedTaskHistoryQuery
+from .utils import parse_date_done, utc_now, build_task_entry, get_filtered_task_list, scan_all_task_ids
 from .models import TaskStatusResponse, TaskResultResponse, TaskHistoryResponse, TaskHistoryEntry
 
 logger = logging.getLogger(__name__)
@@ -172,98 +173,70 @@ def get_task_history(
         HTTPException: 500 if query fails
     """
     try:
-        # Import task history module from common_tasks (with optimized query support)
-        from common_tasks.task_history import CeleryTaskHistory, TaskTypeFilter, OptimizedTaskHistoryQuery
-
-        # Get Redis URL from environment
-        redis_url = os.getenv("REDIS_RESULT_BACKEND", "redis://localhost:6379/1")
-
-        # Use optimized query handler for better performance (SC-010: <1 second for 100+ tasks)
-        optimized_query = OptimizedTaskHistoryQuery(redis_url)
-        history = CeleryTaskHistory(redis_url)
-
-        # Apply filtering if requested
-        if task_type or state:
-            filter_handler = TaskTypeFilter(redis_url)
-
-            if task_type and state:
-                # Filter by both type and state
-                type_filtered = filter_handler.get_tasks_by_type(task_type)
-                task_list = [t for t in type_filtered if t.get("status") == state]
-            elif task_type:
-                # Filter by type only
-                task_list = filter_handler.get_tasks_by_type(task_type)
-            else:
-                # Filter by state only
-                task_list = filter_handler.get_tasks_by_status(state)
-
-            # Convert to task entries
-            tasks = []
-            for task_meta in task_list:
-                task_entry = TaskHistoryEntry(
-                    task_id=task_meta.get("task_id", ""),
-                    task_type=task_meta.get("name", None),
-                    state=task_meta.get("status", "UNKNOWN"),
-                    submitted_at=None,
-                    completed_at=parse_date_done(task_meta.get("date_done")),
-                    result_summary=str(task_meta.get("result", ""))[:100] if task_meta.get("result") else None
-                )
-                tasks.append(task_entry)
-        else:
-            # Scan all tasks using optimized pipeline queries
-            # First, scan for task IDs
-            task_ids = []
-            for page in history.scan_all_tasks_paginated(page_size=100):
-                task_ids.extend(page.get("task_ids", []))
-
-            # Then fetch full task data using Redis pipelines for better performance
-            if task_ids:
-                batch_results = optimized_query.get_tasks_batch_redis(task_ids)
-                tasks = []
-                for task_id, task_meta in batch_results.items():
-                    task_entry = TaskHistoryEntry(
-                        task_id=task_id,
-                        task_type=task_meta.get("name", None),
-                        state=task_meta.get("status", "UNKNOWN"),
-                        submitted_at=None,
-                        completed_at=parse_date_done(task_meta.get("date_done")),
-                        result_summary=str(task_meta.get("result", ""))[:100] if task_meta.get("result") else None
-                    )
-                    tasks.append(task_entry)
-            else:
-                tasks = []
-
-        # Apply offset and limit
-        total_count = len(tasks)
-        tasks = tasks[offset:offset + limit]
-
-        response = TaskHistoryResponse(
-            tasks=tasks,
-            total_count=total_count,
-            timestamp=datetime.utcnow()
-        )
-
-        logger.info(
-            f"Task history queried",
-            extra={
-                "total_count": total_count,
-                "returned": len(tasks),
-                "task_type_filter": task_type,
-                "state_filter": state
-            }
-        )
-
-        return response
+        tasks = _fetch_task_history(task_type, state)
+        return _build_history_response(tasks, limit, offset, task_type, state)
 
     except ImportError as e:
         logger.error(f"Task history module not available: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail="Task history feature not available"
-        )
+        raise HTTPException(status_code=500, detail="Task history feature not available")
     except Exception as e:
         logger.error(f"Error querying task history: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error querying task history: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Error querying task history: {str(e)}")
+
+
+def _fetch_task_history(task_type: Optional[str], state: Optional[str]) -> list[TaskHistoryEntry]:
+    """Fetch task history from Redis with optional filtering."""
+
+    redis_url = os.getenv("REDIS_RESULT_BACKEND", "redis://localhost:6379/1")
+    optimized_query = OptimizedTaskHistoryQuery(redis_url)
+    history = CeleryTaskHistory(redis_url)
+
+    if task_type or state:
+        # fetch_filtered_tasks
+        filter_handler = TaskTypeFilter(redis_url)
+        task_list = get_filtered_task_list(filter_handler, task_type, state)
+
+        return [
+            TaskHistoryEntry(**build_task_entry(None, task_meta))
+            for task_meta in task_list
+        ]
+
+    # fetch all task IDs
+    task_ids = scan_all_task_ids(history)
+
+    if not task_ids:
+        return []
+
+    batch_results = optimized_query.get_tasks_batch_redis(task_ids)
+    return [
+        TaskHistoryEntry(**build_task_entry(task_id, task_meta))
+        for task_id, task_meta in batch_results.items()
+    ]
+
+
+def _build_history_response(
+    tasks: list[TaskHistoryEntry],
+    limit: int,
+    offset: int,
+    task_type: Optional[str],
+    state: Optional[str]
+) -> TaskHistoryResponse:
+    """Build paginated history response."""
+    total_count = len(tasks)
+    paginated_tasks = tasks[offset:offset + limit]
+
+    logger.info(
+        "Task history queried",
+        extra={
+            "total_count": total_count,
+            "returned": len(paginated_tasks),
+            "task_type_filter": task_type,
+            "state_filter": state
+        }
+    )
+
+    return TaskHistoryResponse(
+        tasks=paginated_tasks,
+        total_count=total_count,
+        timestamp=utc_now()
+    )
