@@ -6,7 +6,7 @@ Handles matching incoming request paths to backend service routes.
 
 from typing import Optional
 
-from api_gateway.config import ServiceRoute, load_config
+from .config import ServiceRoute, load_config
 
 
 def match_route(path: str) -> Optional[ServiceRoute]:

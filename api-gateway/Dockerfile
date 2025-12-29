@@ -2,10 +2,16 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+# Copy and install common module first
+COPY common/pyproject.toml common/
+COPY common/src/ common/src/
+
 # Copy and install service
 COPY api-gateway/pyproject.toml api-gateway/
 COPY api-gateway/src/ api-gateway/src/
-RUN pip install --no-cache-dir -e ./api-gateway
+
+RUN pip install --no-cache-dir -e ./common -e ./api-gateway && \
+    python -c "import celery; import redis; print('Dependencies verified')"
 
 # Set Python path
 ENV PYTHONPATH=/app/api-gateway/src:$PYTHONPATH

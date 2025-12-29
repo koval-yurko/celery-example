@@ -5,7 +5,7 @@ Centralized task definitions used by all microservices and workers.
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict
 
 from .celery_app import celery_app
@@ -51,7 +51,7 @@ def process_order(payload: Dict) -> Dict:
         result = {
             "status": "success",
             "order_id": order_data.order_id,
-            "processed_at": datetime.utcnow().isoformat(),
+            "processed_at": datetime.now(timezone.utc).isoformat(),
             "message": f"Order {order_data.order_id} processed successfully",
         }
 
@@ -99,7 +99,7 @@ def send_notification(payload: Dict) -> Dict:
         result = {
             "status": "sent",
             "notification_id": notif_data.notification_id,
-            "sent_at": datetime.utcnow().isoformat(),
+            "sent_at": datetime.now(timezone.utc).isoformat(),
             "delivery_id": f"msg_{notif_data.notification_id}",
         }
 
@@ -126,6 +126,198 @@ def health_check() -> Dict:
 
     return {
         "status": "healthy",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "worker_id": f"{socket.gethostname()}",
+    }
+
+
+# Example Tasks for Service Endpoints Feature (003-service-endpoints)
+
+@celery_app.task(
+    name="add",
+    queue="default",
+    acks_late=True,
+)
+def add(x: float, y: float) -> float:
+    """
+    Add two numbers together.
+
+    Args:
+        x: First operand
+        y: Second operand
+
+    Returns:
+        Sum of x and y
+    """
+    logger.info(f"Adding {x} + {y}")
+    result = x + y
+    logger.info(f"Result: {result}")
+    return result
+
+
+@celery_app.task(
+    name="multiply",
+    queue="default",
+    acks_late=True,
+)
+def multiply(x: float, y: float) -> float:
+    """
+    Multiply two numbers.
+
+    Args:
+        x: First operand
+        y: Second operand
+
+    Returns:
+        Product of x and y
+    """
+    logger.info(f"Multiplying {x} * {y}")
+    result = x * y
+    logger.info(f"Result: {result}")
+    return result
+
+
+@celery_app.task(
+    name="long_running_task",
+    queue="default",
+    acks_late=True,
+)
+def long_running_task(duration: int = 10) -> Dict:
+    """
+    Simulate a long-running task.
+
+    Args:
+        duration: Time to sleep in seconds (default: 10)
+
+    Returns:
+        Completion message with duration and timestamps
+    """
+    import time
+
+    start_time = time.time()
+    logger.info(f"Starting long task that will run for {duration} seconds...")
+
+    time.sleep(duration)
+
+    end_time = time.time()
+    return {
+        "message": f"Task completed after {duration} seconds",
+        "duration": duration,
+        "completed_at": end_time,
+        "started_at": start_time,
+    }
+
+
+@celery_app.task(
+    name="task_with_progress",
+    bind=True,
+    queue="default",
+    acks_late=True,
+)
+def task_with_progress(self, total: int = 100) -> Dict:
+    """
+    Task that reports progress.
+
+    Args:
+        self: Celery task instance (automatically bound)
+        total: Total number of iterations (default: 100)
+
+    Returns:
+        Completion message with progress metadata
+    """
+    import time
+
+    logger.info(f"Starting progress task with {total} iterations")
+
+    for i in range(total):
+        # Update task state with progress
+        self.update_state(
+            state='PROGRESS',
+            meta={'current': i, 'total': total, 'percent': int((i / total) * 100)}
+        )
+        time.sleep(0.1)  # Simulate work
+
+    logger.info("Progress task completed")
+    return {
+        'current': total,
+        'total': total,
+        'percent': 100,
+        'status': 'Complete'
+    }
+
+
+@celery_app.task(
+    name="process_data",
+    queue="default",
+    acks_late=True,
+)
+def process_data(data: Dict) -> Dict:
+    """
+    Process some data.
+
+    Args:
+        data: Dictionary with data to process
+
+    Returns:
+        Processed result with input, processed flag, and timestamp
+    """
+    import time
+
+    logger.info(f"Processing data: {data}")
+
+    # Simulate data processing
+    result = {
+        'input': data,
+        'processed': True,
+        'timestamp': time.time()
+    }
+
+    logger.info("Data processing completed")
+    return result
+
+
+@celery_app.task(
+    name="configurable_outcome_task",
+    queue="default",
+    acks_late=True,
+)
+def configurable_outcome_task(duration: int, should_succeed: bool) -> Dict:
+    """
+    Task with configurable outcome for testing success and failure scenarios.
+
+    This task is idempotent and designed for testing. It either succeeds after
+    the specified duration or raises an exception to simulate failure.
+
+    Args:
+        duration: Time to sleep in seconds before completing/failing
+        should_succeed: True to succeed, False to raise exception
+
+    Returns:
+        Success result dict with message, duration, outcome, and timestamp
+
+    Raises:
+        Exception: If should_succeed is False
+    """
+    import time
+
+    start_time = time.time()
+    logger.info(f"Starting configurable task: duration={duration}s, should_succeed={should_succeed}")
+
+    # Simulate task execution
+    time.sleep(duration)
+
+    if not should_succeed:
+        error_msg = f"Task configured to fail after {duration} seconds"
+        logger.error(error_msg)
+        raise RuntimeError(error_msg)
+
+    end_time = time.time()
+    logger.info(f"Configurable task succeeded after {duration} seconds")
+
+    return {
+        "message": f"Task succeeded after {duration} seconds",
+        "duration": duration,
+        "outcome": "success",
+        "completed_at": end_time,
+        "started_at": start_time,
     }

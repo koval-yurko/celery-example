@@ -12,8 +12,8 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
-from api_gateway.log_config import get_logger
-from api_gateway.routing import match_route
+from .log_config import get_logger
+from .routing import match_route
 
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):

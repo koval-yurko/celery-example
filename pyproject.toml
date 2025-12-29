@@ -17,16 +17,17 @@ dependencies = [
     "api-gateway",
 ]
 
-[project.scripts]
-celery-worker = "celery_example.worker:main"
-celery-example = "celery_example.main:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+# This is a workspace root, not a buildable package
 [tool.hatch.build.targets.wheel]
-packages = ["celery_example"]
+only-include = ["pyproject.toml"]
+
+[tool.hatch.build.targets.sdist]
+only-include = ["pyproject.toml"]
 
 # UV Workspace Configuration (per FR-014, FR-015, FR-018, Constitution v1.1.0)
 # All packages are installed in a single .venv at repository root

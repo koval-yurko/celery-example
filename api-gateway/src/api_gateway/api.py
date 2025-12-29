@@ -9,13 +9,15 @@ import uuid
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
-from api_gateway.config import load_config
-from api_gateway.errors import create_gateway_error
-from api_gateway.gateway import get_gateway_status, list_services
-from api_gateway.health import health_check
-from api_gateway.proxy import proxy_request, rewrite_path
-from api_gateway.routing import match_route
-from api_gateway.schemas import ErrorCode, GatewayStatus, HealthStatus, ServiceInfo
+from .config import load_config
+from .errors import create_gateway_error
+from .gateway import get_gateway_status, list_services
+from .handlers import get_task_history, get_task_result, get_task_status
+from .health import health_check
+from .models import TaskHistoryResponse, TaskResultResponse, TaskStatusResponse
+from .proxy import proxy_request, rewrite_path
+from .routing import match_route
+from .schemas import ErrorCode, GatewayStatus, HealthStatus, ServiceInfo
 
 router = APIRouter()
 
@@ -89,6 +91,62 @@ async def proxy_service2(request: Request, path: str):
 async def proxy_service2_root(request: Request):
     """Proxy root requests to service2."""
     return await _handle_proxy_request(request, "/api/service2")
+
+
+# Task query endpoints (centralized in API Gateway)
+# These endpoints work for tasks submitted by ANY service since all services
+# share the same Redis result backend
+@router.get("/api/tasks/{task_id}/status", response_model=TaskStatusResponse)
+async def task_status(task_id: str):
+    """
+    Get task status by ID.
+
+    Works for tasks from any service (service-1, service-2) since all tasks
+    are stored in the shared Redis result backend.
+
+    Returns:
+        TaskStatusResponse with current task state and metadata
+    """
+    return get_task_status(task_id)
+
+
+@router.get("/api/tasks/{task_id}/result", response_model=TaskResultResponse)
+async def task_result(task_id: str):
+    """
+    Get task result by ID.
+
+    Works for tasks from any service (service-1, service-2) since all tasks
+    are stored in the shared Redis result backend.
+
+    Returns:
+        TaskResultResponse with task result or error details
+    """
+    return get_task_result(task_id)
+
+
+@router.get("/api/tasks/history", response_model=TaskHistoryResponse)
+async def task_history(
+    limit: int = 100,
+    offset: int = 0,
+    task_type: str = None,
+    state: str = None
+):
+    """
+    Get task history from all services with optional filtering.
+
+    Queries the shared Redis result backend to retrieve all tasks regardless
+    of which service submitted them. Supports filtering by task type and state.
+
+    Args:
+        limit: Maximum number of tasks to return (default: 100)
+        offset: Number of tasks to skip (default: 0)
+        task_type: Optional filter by task type (e.g., 'add', 'multiply')
+        state: Optional filter by state (e.g., 'SUCCESS', 'FAILURE', 'PENDING')
+
+    Returns:
+        TaskHistoryResponse with list of all tasks (filtered if parameters provided)
+    """
+    return get_task_history(limit, offset, task_type, state)
 
 
 async def _handle_proxy_request(request: Request, original_path: str):
