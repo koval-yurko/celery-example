@@ -309,7 +309,7 @@ def configurable_outcome_task(duration: int, should_succeed: bool) -> Dict:
     if not should_succeed:
         error_msg = f"Task configured to fail after {duration} seconds"
         logger.error(error_msg)
-        raise Exception(error_msg)
+        raise RuntimeError(error_msg)
 
     end_time = time.time()
     logger.info(f"Configurable task succeeded after {duration} seconds")

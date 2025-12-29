@@ -37,7 +37,7 @@ def parse_date_done(date_done) -> Optional[datetime]:
     return None
 
 
-def build_task_entry(task_id: str, task_meta: Dict[str, Any]) -> Dict[str, Any]:
+def build_task_entry(task_id: Optional[str], task_meta: Dict[str, Any]) -> Dict[str, Any]:
     """
     Build a task entry dict from task metadata.
 

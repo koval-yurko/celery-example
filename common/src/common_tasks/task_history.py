@@ -29,6 +29,11 @@ from celery.exceptions import TimeoutError as CeleryTimeoutError
 
 logger = logging.getLogger(__name__)
 
+# Constants
+DEFAULT_REDIS_URL = "redis://localhost:6379/1"
+CELERY_TASK_META_PATTERN = "celery-task-meta-*"
+CELERY_TASK_META_PREFIX = "celery-task-meta-"
+
 
 class CeleryTaskHistory:
     """
@@ -38,7 +43,7 @@ class CeleryTaskHistory:
     Suitable for querying 100+ tasks without blocking Redis.
     """
 
-    def __init__(self, redis_url: str = "redis://localhost:6379/1", batch_size: int = 100):
+    def __init__(self, redis_url: str = DEFAULT_REDIS_URL, batch_size: int = 100):
         """
         Initialize task history query handler.
 
@@ -47,7 +52,7 @@ class CeleryTaskHistory:
             batch_size: Number of keys per SCAN iteration (hint, not guaranteed)
         """
         self.redis_client = redis.from_url(redis_url, decode_responses=True)
-        self.pattern = "celery-task-meta-*"
+        self.pattern = CELERY_TASK_META_PATTERN
         self.batch_size = batch_size
 
     def get_all_task_ids(self, cursor: int = 0, count: int = None) -> Dict[str, Any]:
@@ -78,7 +83,7 @@ class CeleryTaskHistory:
 
             # Extract task IDs: "celery-task-meta-<uuid>" -> "<uuid>"
             task_ids = [
-                key.replace("celery-task-meta-", "") for key in keys
+                key.replace(CELERY_TASK_META_PREFIX, "") for key in keys
             ]
 
             return {
@@ -245,7 +250,7 @@ class OptimizedTaskHistoryQuery:
     More performant than AsyncResult for batch operations.
     """
 
-    def __init__(self, redis_url: str = "redis://localhost:6379/1"):
+    def __init__(self, redis_url: str = DEFAULT_REDIS_URL):
         """Initialize Redis client for direct queries."""
         self.redis = redis.from_url(redis_url, decode_responses=True)
 
@@ -268,7 +273,7 @@ class OptimizedTaskHistoryQuery:
 
         # Queue all GET commands
         for task_id in task_ids:
-            key = f"celery-task-meta-{task_id}"
+            key = f"{CELERY_TASK_META_PREFIX}{task_id}"
             pipeline.get(key)
 
         try:
@@ -317,50 +322,69 @@ class OptimizedTaskHistoryQuery:
         page = 0
 
         while True:
-            try:
-                cursor, keys = self.redis.scan(
-                    cursor=cursor,
-                    match="celery-task-meta-*",
-                    count=page_size
-                )
-
-                if not keys:
-                    if cursor == 0:
-                        break
-                    continue
-
-                # Extract task IDs
-                task_ids = [k.replace("celery-task-meta-", "") for k in keys]
-
-                # Batch query all states
-                task_states = self.get_tasks_batch_redis(task_ids)
-
-                # Apply filters
-                if filter_state or filter_task_name:
-                    filtered = {}
-                    for tid, state in task_states.items():
-                        if filter_state and state.get('status') != filter_state:
-                            continue
-                        if filter_task_name and state.get('name') != filter_task_name:
-                            continue
-                        filtered[tid] = state
-                    task_states = filtered
-
-                if task_states:
-                    page += 1
-                    yield {
-                        "page": page,
-                        "tasks": task_states,
-                        "total_in_page": len(task_states),
-                        "has_more": cursor != 0
-                    }
-
-                if cursor == 0:
-                    break
-
-            except redis.ConnectionError as e:
-                logger.error(f"Redis connection error: {str(e)}")
+            result = self._scan_and_process_batch(cursor, page_size, filter_state, filter_task_name)
+            if result is None:
                 break
+
+            cursor, task_states = result
+
+            if task_states:
+                page += 1
+                yield {
+                    "page": page,
+                    "tasks": task_states,
+                    "total_in_page": len(task_states),
+                    "has_more": cursor != 0
+                }
+
+            if cursor == 0:
+                break
+
+    def _scan_and_process_batch(
+        self,
+        cursor: int,
+        page_size: int,
+        filter_state: Optional[str],
+        filter_task_name: Optional[str]
+    ) -> Optional[tuple]:
+        """Scan Redis and process a batch of tasks."""
+        try:
+            cursor, keys = self.redis.scan(
+                cursor=cursor,
+                match=CELERY_TASK_META_PATTERN,
+                count=page_size
+            )
+
+            if not keys:
+                return (cursor, {}) if cursor != 0 else None
+
+            task_ids = [k.replace(CELERY_TASK_META_PREFIX, "") for k in keys]
+            task_states = self.get_tasks_batch_redis(task_ids)
+
+            if filter_state or filter_task_name:
+                task_states = self._apply_filters(task_states, filter_state, filter_task_name)
+
+            return (cursor, task_states)
+
+        except redis.ConnectionError as e:
+            logger.error(f"Redis connection error: {str(e)}")
+            return None
+
+    def _apply_filters(
+        self,
+        task_states: Dict[str, Dict],
+        filter_state: Optional[str],
+        filter_task_name: Optional[str]
+    ) -> Dict[str, Dict]:
+        """Apply state and task name filters to task states."""
+        filtered = {}
+        for tid, state in task_states.items():
+            if filter_state and state.get('status') != filter_state:
+                continue
+            if filter_task_name and state.get('name') != filter_task_name:
+                continue
+            filtered[tid] = state
+        return filtered
 
 
 class RobustTaskQueryHandler:
@@ -516,7 +540,7 @@ class TaskTypeFilter:
     Filter and group tasks by type/name or other attributes.
     """
 
-    def __init__(self, redis_url: str = "redis://localhost:6379/1"):
+    def __init__(self, redis_url: str = DEFAULT_REDIS_URL):
         """Initialize with Redis connection."""
         self.redis = redis.from_url(redis_url, decode_responses=True)
 
@@ -536,29 +560,38 @@ class TaskTypeFilter:
         while True:
             cursor, keys = self.redis.scan(
                 cursor=cursor,
-                match="celery-task-meta-*"
+                match=CELERY_TASK_META_PATTERN
             )
 
-            for key in keys:
-                task_data = self.redis.get(key)
-                if task_data:
-                    try:
-                        metadata = json.loads(task_data)
-                        if metadata.get('name') == task_name:
-                            task_id = key.replace("celery-task-meta-", "")
-                            matching_tasks.append({
-                                'task_id': task_id,
-                                'name': metadata.get('name'),
-                                'status': metadata.get('status'),
-                                'result': metadata.get('result'),
-                            })
-                    except json.JSONDecodeError:
-                        pass
+            matching_tasks.extend(
+                self._process_task_keys_by_name(keys, task_name)
+            )
 
             if cursor == 0:
                 break
 
         return matching_tasks
+
+    def _process_task_keys_by_name(self, keys: List[str], task_name: str) -> List[Dict]:
+        """Process keys and filter by task name."""
+        results = []
+        for key in keys:
+            task_data = self.redis.get(key)
+            if not task_data:
+                continue
+            try:
+                metadata = json.loads(task_data)
+                if metadata.get('name') == task_name:
+                    task_id = key.replace(CELERY_TASK_META_PREFIX, "")
+                    results.append({
+                        'task_id': task_id,
+                        'name': metadata.get('name'),
+                        'status': metadata.get('status'),
+                        'result': metadata.get('result'),
+                    })
+            except json.JSONDecodeError:
+                pass
+        return results
 
     def get_tasks_by_status(self, status: str) -> List[Dict]:
         """
@@ -576,28 +609,37 @@ class TaskTypeFilter:
         while True:
             cursor, keys = self.redis.scan(
                 cursor=cursor,
-                match="celery-task-meta-*"
+                match=CELERY_TASK_META_PATTERN
             )
 
-            for key in keys:
-                task_data = self.redis.get(key)
-                if task_data:
-                    try:
-                        metadata = json.loads(task_data)
-                        if metadata.get('status') == status:
-                            task_id = key.replace("celery-task-meta-", "")
-                            matching_tasks.append({
-                                'task_id': task_id,
-                                'name': metadata.get('name'),
-                                'status': status,
-                            })
-                    except json.JSONDecodeError:
-                        pass
+            matching_tasks.extend(
+                self._process_task_keys_by_status(keys, status)
+            )
 
             if cursor == 0:
                 break
 
         return matching_tasks
+
+    def _process_task_keys_by_status(self, keys: List[str], status: str) -> List[Dict]:
+        """Process keys and filter by status."""
+        results = []
+        for key in keys:
+            task_data = self.redis.get(key)
+            if not task_data:
+                continue
+            try:
+                metadata = json.loads(task_data)
+                if metadata.get('status') == status:
+                    task_id = key.replace(CELERY_TASK_META_PREFIX, "")
+                    results.append({
+                        'task_id': task_id,
+                        'name': metadata.get('name'),
+                        'status': status,
+                    })
+            except json.JSONDecodeError:
+                pass
+        return results
 
     def group_tasks_by_type(self) -> Dict[str, List]:
         """
@@ -612,31 +654,36 @@ class TaskTypeFilter:
         while True:
             cursor, keys = self.redis.scan(
                 cursor=cursor,
-                match="celery-task-meta-*"
+                match=CELERY_TASK_META_PATTERN
             )
 
-            for key in keys:
-                task_data = self.redis.get(key)
-                if task_data:
-                    try:
-                        metadata = json.loads(task_data)
-                        task_name = metadata.get('name', 'unknown')
-
-                        if task_name not in grouped:
-                            grouped[task_name] = []
-
-                        task_id = key.replace("celery-task-meta-", "")
-                        grouped[task_name].append({
-                            'task_id': task_id,
-                            'status': metadata.get('status'),
-                        })
-                    except json.JSONDecodeError:
-                        pass
+            self._group_task_keys_by_type(keys, grouped)
 
             if cursor == 0:
                 break
 
         return grouped
+
+    def _group_task_keys_by_type(self, keys: List[str], grouped: Dict[str, List]) -> None:
+        """Process keys and group by task type."""
+        for key in keys:
+            task_data = self.redis.get(key)
+            if not task_data:
+                continue
+            try:
+                metadata = json.loads(task_data)
+                task_name = metadata.get('name', 'unknown')
+
+                if task_name not in grouped:
+                    grouped[task_name] = []
+
+                task_id = key.replace(CELERY_TASK_META_PREFIX, "")
+                grouped[task_name].append({
+                    'task_id': task_id,
+                    'status': metadata.get('status'),
+                })
+            except json.JSONDecodeError:
+                pass
 
     def get_task_statistics(self) -> Dict[str, Any]:
         """
@@ -659,27 +706,32 @@ class TaskTypeFilter:
         while True:
             cursor, keys = self.redis.scan(
                 cursor=cursor,
-                match="celery-task-meta-*"
+                match=CELERY_TASK_META_PATTERN
             )
 
-            for key in keys:
-                task_data = self.redis.get(key)
-                if task_data:
-                    try:
-                        metadata = json.loads(task_data)
-
-                        stats['total_tasks'] += 1
-
-                        status = metadata.get('status', 'unknown')
-                        stats['by_status'][status] = stats['by_status'].get(status, 0) + 1
-
-                        task_type = metadata.get('name', 'unknown')
-                        stats['by_type'][task_type] = stats['by_type'].get(task_type, 0) + 1
-
-                    except json.JSONDecodeError:
-                        pass
+            self._update_statistics_from_keys(keys, stats)
 
             if cursor == 0:
                 break
 
         return stats
+
+    def _update_statistics_from_keys(self, keys: List[str], stats: Dict[str, Any]) -> None:
+        """Update statistics from task keys."""
+        for key in keys:
+            task_data = self.redis.get(key)
+            if not task_data:
+                continue
+            try:
+                metadata = json.loads(task_data)
+
+                stats['total_tasks'] += 1
+
+                status = metadata.get('status', 'unknown')
+                stats['by_status'][status] = stats['by_status'].get(status, 0) + 1
+
+                task_type = metadata.get('name', 'unknown')
+                stats['by_type'][task_type] = stats['by_type'].get(task_type, 0) + 1
+
+            except json.JSONDecodeError:
+                pass

@@ -53,9 +53,8 @@ def get_task_status(task_id: str) -> TaskStatusResponse:
 
         # Extract progress metadata if available (for PROGRESS state)
         progress = None
-        if state == "PROGRESS" and result.info:
-            if isinstance(result.info, dict):
-                progress = result.info
+        if state == "PROGRESS" and result.info and isinstance(result.info, dict):
+            progress = result.info
 
         # Build response
         response = TaskStatusResponse(
